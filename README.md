@@ -1,6 +1,6 @@
 # PLAZMA SHOOTER – A SCIENCE OF DESTRUCTION
 
-> **A complete browser-based shoot 'em up** – harness the power of plasma, master elemental hazards, and neutralize the four corrupted facilities of AXIOM Corp.
+> **A complete browser-based shoot 'em up** – harness the power of plasma, master elemental hazards, and neutralize the four corrupted facilities of PLAZMA INSTITUTE.
 
 ## 📖 About the Game
 
