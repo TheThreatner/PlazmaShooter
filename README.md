@@ -2,8 +2,6 @@
 
 > **A complete browser-based shoot 'em up** – harness the power of plasma, master elemental hazards, and neutralize the four corrupted facilities of AXIOM Corp.
 
-![Game Banner](https://via.placeholder.com/800x200?text=PLAZMA+SHOOTER+%7C+SCIENCE+OF+DESTRUCTION)
-
 ## 📖 About the Game
 
 **Year 2157.** PLAZMA INSTITUTE has weaponized the fundamental laws of physics, chemistry, and biology. Their arsenal includes electromagnetic horrors, caustic abominations, and living biological nightmares. One soldier remains. One plasma weapon. One mission.
@@ -49,7 +47,7 @@
 
 ## 🛠 Installation & Setup
 
-### Option 1: Click this link
+### Option 1: Click this link [Launch the game](https://yourdomain.com/plazma-shooter)
 
 ### Option 2: Quick Start (No Audio)
 
@@ -146,4 +144,3 @@ This project is provided for **personal and portfolio use**. You may modify and 
 ---
 
 *Oxidation will happen to you. Play responsibly.*  
-[Launch the game](https://yourdomain.com/plazma-shooter) *(if hosted)*
