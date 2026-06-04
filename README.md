@@ -47,7 +47,7 @@
 
 ## 🛠 Installation & Setup
 
-### Option 1: Click this link [Launch the game](https://yourdomain.com/plazma-shooter)
+### Option 1: [Click this link](https://yourdomain.com/plazma-shooter)
 
 ### Option 2: Quick Start (No Audio)
 
