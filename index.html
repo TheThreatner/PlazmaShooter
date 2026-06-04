@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLAZMA SHOOTER</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --neon-cyan:   #00f5ff;
+    --neon-red:    #ff003c;
+    --neon-yellow: #ffe600;
+    --neon-green:  #39ff14;
+    --neon-purple: #bf00ff;
+    --dark-bg:     #030510;
+    --panel-bg:    rgba(3,5,16,0.92);
+    --text-main:   #e0f0ff;
+  }
+
+  html, body {
+    width:100%; height:100%;
+    background: var(--dark-bg);
+    overflow: hidden;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-main);
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+    image-rendering: pixelated;
+  }
+
+  #ui-overlay {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--dark-bg);
+    z-index: 100;
+    transition: opacity 0.4s;
+  }
+  .screen.hidden { display: none !important; }
+  .hidden { display: none !important; }
+
+  /* ── LOADING ── */
+  #loading-screen .loader-bar-wrap {
+    width: 340px; height: 14px;
+    border: 2px solid var(--neon-cyan);
+    border-radius: 4px;
+    margin-top: 32px;
+    overflow: hidden;
+    box-shadow: 0 0 12px var(--neon-cyan);
+  }
+  #loading-screen .loader-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+    transition: width 0.15s linear;
+    box-shadow: 0 0 18px var(--neon-cyan);
+  }
+  #loading-screen .load-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--neon-cyan);
+    margin-top: 14px;
+    opacity: 0.7;
+  }
+
+  /* ── DISCLAIMER ── */
+  #disclaimer-screen .disc-box {
+    border: 2px solid var(--neon-yellow);
+    padding: 36px 44px;
+    max-width: 580px;
+    text-align: center;
+    box-shadow: 0 0 28px rgba(255,230,0,0.25);
+  }
+  #disclaimer-screen h2 {
+    font-family: 'Orbitron', monospace;
+    color: var(--neon-yellow);
+    font-size: 20px;
+    letter-spacing: 6px;
+    margin-bottom: 20px;
+  }
+  #disclaimer-screen p {
+    font-size: 13px; line-height: 1.9;
+    color: #aac; margin-bottom: 24px;
+  }
+
+  /* ── MAIN MENU ── */
+  #menu-screen {
+    background: radial-gradient(ellipse at 50% 30%, #0a0520 0%, #030510 70%);
+  }
+  #menu-screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 40px,
+      rgba(0,245,255,0.025) 40px, rgba(0,245,255,0.025) 41px
+    );
+    pointer-events: none;
+  }
+  .game-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    letter-spacing: 8px;
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 60%, var(--neon-red) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 22px var(--neon-cyan));
+    margin-bottom: 8px;
+  }
+  .game-subtitle {
+    font-size: 11px; letter-spacing: 10px;
+    color: var(--neon-cyan); opacity: 0.6;
+    margin-bottom: 52px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+  }
+  #menu-screen .menu-corner {
+    position:absolute;
+    width:40px;height:40px;
+  }
+  #menu-screen .menu-corner.tl { top:20px;left:20px;border-top:2px solid rgba(0,245,255,0.3);border-left:2px solid rgba(0,245,255,0.3); }
+  #menu-screen .menu-corner.tr { top:20px;right:20px;border-top:2px solid rgba(0,245,255,0.3);border-right:2px solid rgba(0,245,255,0.3); }
+  #menu-screen .menu-corner.bl { bottom:20px;left:20px;border-bottom:2px solid rgba(0,245,255,0.3);border-left:2px solid rgba(0,245,255,0.3); }
+  #menu-screen .menu-corner.br { bottom:20px;right:20px;border-bottom:2px solid rgba(0,245,255,0.3);border-right:2px solid rgba(0,245,255,0.3); }
+  #menu-screen .menu-ver {
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+    font-size:9px;letter-spacing:4px;color:rgba(0,245,255,0.2);
+    font-family:'Share Tech Mono';
+  }
+  .menu-btn {
+    display: block;
+    width: 260px;
+    padding: 14px 0;
+    margin: 10px 0;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--neon-cyan);
+    background: transparent;
+    border: 1.5px solid var(--neon-cyan);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  }
+  .menu-btn::before {
+    content:'';
+    position:absolute; inset:0;
+    background: var(--neon-cyan);
+    transform: translateX(-100%);
+    transition: transform 0.22s;
+    opacity:0.12;
+  }
+  .menu-btn:hover { color: var(--dark-bg); box-shadow: 0 0 24px var(--neon-cyan); }
+  .menu-btn:hover::before { transform: translateX(0); opacity:1; }
+  .menu-btn.danger { color: var(--neon-red); border-color: var(--neon-red); }
+  .menu-btn.danger:hover { box-shadow: 0 0 24px var(--neon-red); }
+  .menu-btn.danger::before { background: var(--neon-red); }
+
+  /* ── SETTINGS PANEL ── */
+  #settings-panel {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(3,5,16,0.85);
+    z-index: 200;
+    backdrop-filter: blur(6px);
+  }
+  .settings-box {
+    border: 2px solid var(--neon-cyan);
+    background: var(--panel-bg);
+    padding: 32px 40px;
+    min-width: 460px;
+    max-width: 540px;
+    box-shadow: 0 0 40px rgba(0,245,255,0.18);
+  }
+  .settings-box h3 {
+    font-family: 'Orbitron', monospace;
+    color: var(--neon-cyan);
+    letter-spacing: 6px;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .settings-tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+  .tab-btn {
+    flex:1; padding: 8px 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    background: transparent;
+    border: 1px solid rgba(0,245,255,0.3);
+    color: rgba(0,245,255,0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .tab-btn.active {
+    background: rgba(0,245,255,0.15);
+    color: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+  }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .setting-row label {
+    font-size: 12px; letter-spacing: 2px;
+    color: rgba(224,240,255,0.7);
+    text-transform: uppercase;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 160px; height: 4px;
+    background: rgba(0,245,255,0.2);
+    border-radius: 2px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width:14px; height:14px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    cursor:pointer;
+    box-shadow: 0 0 8px var(--neon-cyan);
+  }
+  .key-bind {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .key-bind label { font-size:12px; color: rgba(224,240,255,0.7); letter-spacing:2px; text-transform:uppercase; }
+  .key-tag {
+    background: rgba(0,245,255,0.1);
+    border: 1px solid rgba(0,245,255,0.4);
+    padding: 4px 14px;
+    font-size: 12px; letter-spacing:2px;
+    color: var(--neon-cyan);
+    min-width: 64px; text-align: center;
+  }
+  select {
+    background: rgba(0,245,255,0.08);
+    border: 1px solid rgba(0,245,255,0.3);
+    color: var(--neon-cyan);
+    padding: 6px 12px;
+    font-family: 'Share Tech Mono'; font-size:12px;
+    cursor:pointer; outline:none;
+  }
+
+  /* ── STORY / END CLIPS ── */
+  #story-screen, #end-screen {
+    background: #000;
+    justify-content: flex-end;
+    padding-bottom: 60px;
+  }
+  .story-text-box {
+    max-width: 680px; width: 90%;
+    text-align: center;
+  }
+  .story-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; letter-spacing: 6px;
+    color: var(--neon-cyan);
+    margin-bottom: 18px;
+  }
+  .story-body {
+    font-size: 14px; line-height: 2;
+    color: #9ab; margin-bottom: 28px;
+  }
+
+  /* ── AUTOSAVE ── */
+  #autosave-screen {
+    background: rgba(3,5,16,0.96);
+  }
+  .autosave-icon {
+    font-size: 48px; margin-bottom: 20px;
+    animation: spin 1.2s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .autosave-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px; letter-spacing: 6px;
+    color: var(--neon-green);
+    text-shadow: 0 0 18px var(--neon-green);
+  }
+
+  /* ── GAME HUD ── */
+  #hud {
+    position: fixed; top:0; left:0; right:0;
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(3,5,16,0.92) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 50;
+  }
+  .hud-hp-wrap {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hud-hp-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--neon-red);
+  }
+  .hud-hp-bar-bg {
+    width: 180px; height: 10px;
+    background: rgba(255,0,60,0.15);
+    border: 1px solid var(--neon-red);
+    border-radius: 2px;
+  }
+  .hud-hp-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff003c, #ff6060);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--neon-red);
+    transition: width 0.18s;
+  }
+  .hud-center {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px; letter-spacing: 5px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 14px var(--neon-yellow);
+  }
+  .hud-right {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--neon-cyan);
+    opacity: 0.8;
+  }
+  .hud-boss-bar-wrap {
+    position: fixed; bottom: 24px; left:50%; transform: translateX(-50%);
+    width: 480px; max-width: 90vw;
+    pointer-events: none; z-index: 50;
+    display: none;
+  }
+  .hud-boss-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 5px;
+    color: var(--neon-purple);
+    text-align: center; margin-bottom: 6px;
+    text-shadow: 0 0 14px var(--neon-purple);
+  }
+  .hud-boss-bg {
+    width:100%; height:12px;
+    background: rgba(191,0,255,0.12);
+    border: 1px solid var(--neon-purple);
+  }
+  .hud-boss-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-purple), #ff00aa);
+    box-shadow: 0 0 12px var(--neon-purple);
+    transition: width 0.2s;
+  }
+
+  /* ── DEATH SCREEN ── */
+  #death-screen {
+    background: rgba(10,0,0,0.97);
+  }
+  #death-screen .death-msg {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(16px, 2.5vw, 26px);
+    font-weight: 900;
+    color: var(--neon-red);
+    text-shadow: 0 0 28px var(--neon-red);
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    text-align: center;
+    max-width: 80vw;
+    animation: flicker 0.08s infinite alternate;
+  }
+  @keyframes flicker { from { opacity:1; } to { opacity:0.82; } }
+  #death-screen .death-sub {
+    font-size: 12px; letter-spacing: 4px;
+    color: #633; margin-bottom: 40px;
+  }
+
+  /* ── FINISH SCREEN ── */
+  #finish-screen {
+    background: radial-gradient(ellipse at center, #0a1520 0%, #030510 80%);
+  }
+  .finish-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(26px,4vw,48px);
+    font-weight: 900;
+    letter-spacing: 10px;
+    background: linear-gradient(135deg, #ffe600, #ff6a00, #ff003c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 18px #ff6a00);
+    margin-bottom: 12px;
+  }
+  .finish-score {
+    font-size: 14px; letter-spacing: 5px;
+    color: var(--neon-yellow); margin-bottom: 44px;
+  }
+
+  /* ── KILL FLASH ── */
+  #kill-flash {
+    position: fixed; inset:0;
+    background: rgba(255,0,60,0.22);
+    pointer-events:none;
+    opacity:0;
+    z-index: 999;
+    transition: opacity 0.08s;
+  }
+
+  /* ── PAUSE ── */
+  #pause-panel {
+    position: fixed; inset:0;
+    background: rgba(3,5,16,0.82);
+    display: flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index: 400; backdrop-filter: blur(4px);
+  }
+  #pause-panel h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px; letter-spacing: 10px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 22px var(--neon-yellow);
+    margin-bottom: 36px;
+  }
+
+  /* ── DAMAGE NUMBER ── */
+  .dmg-num {
+    position: fixed;
+    font-family: 'Orbitron', monospace;
+    font-size: 20px; font-weight:900;
+    pointer-events: none;
+    z-index: 500;
+    animation: floatUp 0.9s forwards;
+  }
+  @keyframes floatUp {
+    0%   { opacity:1; transform: translateY(0) scale(1); }
+    80%  { opacity:0.8; }
+    100% { opacity:0; transform: translateY(-60px) scale(0.7); }
+  }
+
+  /* ── SCANLINES overlay ── */
+  #scanlines {
+    position: fixed; inset:0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent 0px, transparent 3px,
+      rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px
+    );
+    z-index: 800;
+  }
+
+  /* ── BLINDNESS ── */
+  #blind-overlay {
+    position:fixed; inset:0;
+    background: #000;
+    opacity: 0;
+    pointer-events:none;
+    z-index: 600;
+    transition: opacity 0.3s;
+  }
+
+  /* ── STATUS MESSAGE ── */
+  #status-msg {
+    position: fixed; top:56px; left:50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 12px; letter-spacing: 4px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 14px var(--neon-yellow);
+    opacity:0;
+    z-index: 55;
+    pointer-events:none;
+    transition: opacity 0.3s;
+    text-align:center;
+  }
+
+  /* ── CONTINUE? ── */
+  #continue-prompt {
+    position: fixed; bottom: 32px; right: 32px;
+    font-size: 11px; letter-spacing: 3px;
+    color: rgba(0,245,255,0.4);
+    font-family: 'Share Tech Mono';
+    pointer-events: none;
+    animation: blink 1.2s step-end infinite;
+    z-index:55;
+  }
+  @keyframes blink { 50%{ opacity:0; } }
+  @keyframes pulse-load { 0%,100%{opacity:0.05;} 50%{opacity:0.15;} }
+  @keyframes stage-glow { 0%,100%{text-shadow:0 0 12px currentColor;} 50%{text-shadow:0 0 24px currentColor, 0 0 40px currentColor;} }
+  @keyframes scan { to { left:200%; } }
+
+  .particle-canvas {
+    position: fixed; inset:0;
+    pointer-events:none;
+    z-index:5;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas" class="particle-canvas"></canvas>
+<canvas id="game-canvas"></canvas>
+<div id="scanlines"></div>
+<div id="kill-flash"></div>
+<div id="blind-overlay"></div>
+
+<!-- ── HUD ── -->
+<div id="hud" class="hidden">
+  <div class="hud-hp-wrap">
+    <span class="hud-hp-label">HP</span>
+    <div class="hud-hp-bar-bg"><div class="hud-hp-bar" id="hp-bar" style="width:100%"></div></div>
+    <span id="hp-num" style="font-family:'Orbitron',monospace;font-size:10px;color:var(--neon-red);margin-left:8px">20/20</span>
+  </div>
+  <div class="hud-center" id="stage-label" style="animation:stage-glow 2s ease-in-out infinite;">STAGE 1</div>
+  <div id="wave-label" style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,230,0,0.5);text-align:center;margin-top:2px;"></div>
+  <div class="hud-right" id="score-label">SCORE: 0</div>
+</div>
+<div class="hud-boss-bar-wrap" id="boss-bar-wrap">
+  <div class="hud-boss-name" id="boss-name">PKING</div>
+  <div class="hud-boss-bg"><div class="hud-boss-fill" id="boss-bar" style="width:100%"></div></div>
+</div>
+
+<div id="status-msg"></div>
+<div id="continue-prompt" class="hidden">PRESS ANY KEY TO CONTINUE</div>
+
+<!-- ── LOADING SCREEN ── -->
+<div class="screen" id="loading-screen">
+  <div style="position:relative;margin-bottom:8px;">
+    <div style="font-family:'Orbitron',monospace;font-size:clamp(18px,3vw,30px);font-weight:900;letter-spacing:10px;background:linear-gradient(135deg,#00f5ff 0%,#bf00ff 50%,#ff003c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 18px #00f5ff);">
+      PLAZMA SHOOTER
+    </div>
+    <div style="position:absolute;inset:-4px;background:linear-gradient(135deg,#00f5ff,#bf00ff,#ff003c);opacity:0.08;border-radius:4px;animation:pulse-load 1.5s ease-in-out infinite;"></div>
+  </div>
+  <div style="font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:8px;color:rgba(0,245,255,0.4);margin-bottom:32px;">A SCIENCE OF DESTRUCTION</div>
+  <div class="loader-bar-wrap">
+    <div class="loader-bar" id="loader-bar"></div>
+  </div>
+  <div class="load-label" id="load-label">INITIALISING SYSTEMS...</div>
+</div>
+
+<!-- ── DISCLAIMER ── -->
+<div class="screen hidden" id="disclaimer-screen">
+  <div class="disc-box">
+    <h2>⚠ DISCLAIMER</h2>
+    <p>
+      This game contains <strong style="color:var(--neon-yellow)">intense action</strong>, 
+      fictional violence, and references to science/biology concepts for gameplay purposes only.<br><br>
+      All enemy names and scenarios are <strong style="color:var(--neon-cyan)">entirely fictional</strong>.<br>
+      JoJo references are intentional and appreciated.<br>
+      Minecraft references are unintentional and also appreciated.<br><br>
+      <em style="color:#566">By continuing, you accept that oxidation will happen to you.</em>
+    </p>
+    <button class="menu-btn" onclick="Game.dismissDisclaimer()">I UNDERSTAND — PROCEED</button>
+  </div>
+</div>
+
+<!-- ── MAIN MENU ── -->
+<div class="screen hidden" id="menu-screen">
+  <div class="menu-corner tl"></div>
+  <div class="menu-corner tr"></div>
+  <div class="menu-corner bl"></div>
+  <div class="menu-corner br"></div>
+  <div class="menu-ver">v1.0 // AXIOM CORP // 2157</div>
+  <div class="game-title">PLAZMA SHOOTER</div>
+  <div class="game-subtitle">A SCIENCE OF DESTRUCTION</div>
+  <button class="menu-btn" onclick="Game.startNew()" id="btn-start">NEW GAME</button>
+  <button class="menu-btn" id="btn-continue" onclick="Game.continueGame()" style="opacity:0.4;pointer-events:none">CONTINUE</button>
+  <button class="menu-btn" onclick="Game.openSettings()">SETTINGS</button>
+  <button class="menu-btn danger" onclick="Game.quit()">QUIT</button>
+</div>
+
+<!-- ── SETTINGS PANEL ── -->
+<div id="settings-panel" class="hidden">
+  <div class="settings-box">
+    <h3>⚙ SETTINGS</h3>
+    <div class="settings-tabs">
+      <button class="tab-btn active" onclick="Game.switchTab('graphics')">GRAPHICS</button>
+      <button class="tab-btn" onclick="Game.switchTab('audio')">AUDIO</button>
+      <button class="tab-btn" onclick="Game.switchTab('keybinds')">KEYBINDS</button>
+    </div>
+
+    <div class="tab-content active" id="tab-graphics">
+      <div class="setting-row">
+        <label>QUALITY</label>
+        <select id="gfx-quality" onchange="Game.applySettings()">
+          <option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>SCANLINES</label>
+        <select id="gfx-scanlines" onchange="Game.applySettings()">
+          <option value="1">ON</option><option value="0">OFF</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>PARTICLES</label>
+        <select id="gfx-particles" onchange="Game.applySettings()">
+          <option value="1">ON</option><option value="0">OFF</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-audio">
+      <div class="setting-row">
+        <label>MASTER VOL</label>
+        <input type="range" id="vol-master" min="0" max="100" value="80" onchange="Game.applySettings()">
+      </div>
+      <div class="setting-row">
+        <label>BGM VOL</label>
+        <input type="range" id="vol-bgm" min="0" max="100" value="70" onchange="Game.applySettings()">
+      </div>
+      <div class="setting-row">
+        <label>SFX VOL</label>
+        <input type="range" id="vol-sfx" min="0" max="100" value="80" onchange="Game.applySettings()">
+      </div>
+      <div style="margin-top:18px;font-size:11px;color:rgba(0,245,255,0.4);letter-spacing:2px;">
+        PLACE YOUR .MP3/.WAV FILES IN THE /audio/ FOLDER.<br>SEE README.TXT FOR FILE NAMES.
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-keybinds">
+      <div class="key-bind"><label>MOVE LEFT</label><span class="key-tag">A / ←</span></div>
+      <div class="key-bind"><label>MOVE RIGHT</label><span class="key-tag">D / →</span></div>
+      <div class="key-bind"><label>SHOOT</label><span class="key-tag">SPACE</span></div>
+      <div class="key-bind"><label>PAUSE</label><span class="key-tag">ESC</span></div>
+      <div style="margin-top:18px;font-size:11px;color:rgba(0,245,255,0.4);letter-spacing:2px;">
+        REBINDABLE IN FUTURE UPDATE.
+      </div>
+    </div>
+
+    <div style="margin-top:28px;display:flex;gap:12px;justify-content:flex-end;">
+      <button class="menu-btn" style="width:auto;padding:10px 28px;font-size:11px" onclick="Game.closeSettings()">BACK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── STORY SCREEN ── -->
+<div class="screen hidden" id="story-screen" style="background:#000;">
+  <canvas id="story-canvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.4"></canvas>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0.7) 100%);pointer-events:none;"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--neon-cyan),transparent);opacity:0.6;"></div>
+  <div class="story-text-box" style="position:relative;z-index:2;padding:24px;border:1px solid rgba(0,245,255,0.15);background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+    <div class="story-title" id="story-title-txt">[ TRANSMISSION INTERCEPTED ]</div>
+    <div class="story-body" id="story-body-txt" style="min-height:120px;"></div>
+    <button class="menu-btn" onclick="Game.skipStory()">SKIP ▶</button>
+  </div>
+</div>
+
+<!-- ── AUTOSAVE SCREEN ── -->
+<div class="screen hidden" id="autosave-screen" style="background:radial-gradient(ellipse at center,#001800 0%,#030510 70%);">
+  <div style="border:2px solid var(--neon-green);padding:40px 60px;text-align:center;box-shadow:0 0 40px rgba(57,255,20,0.2);max-width:420px;">
+    <div style="font-size:52px;color:var(--neon-green);text-shadow:0 0 20px var(--neon-green);animation:spin 1.2s linear infinite;display:inline-block;">⟳</div>
+    <div style="font-family:'Orbitron',monospace;font-size:16px;letter-spacing:8px;color:var(--neon-green);text-shadow:0 0 18px var(--neon-green);margin:16px 0 8px;">CHECKPOINT SAVED</div>
+    <div style="font-size:11px;letter-spacing:3px;color:rgba(57,255,20,0.5);margin-bottom:16px" id="autosave-stage-txt">STAGE 1 COMPLETE</div>
+    <div style="width:100%;height:2px;background:rgba(57,255,20,0.2);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,var(--neon-green),transparent);animation:scan 1.2s linear infinite;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN CANVAS (main) ── -->
+<!-- game runs on #game-canvas -->
+
+<!-- ── PAUSE ── -->
+<div id="pause-panel" class="hidden">
+  <h2>PAUSED</h2>
+  <button class="menu-btn" onclick="Game.resumeGame()">RESUME</button>
+  <button class="menu-btn" onclick="Game.openSettings()">SETTINGS</button>
+  <button class="menu-btn danger" onclick="Game.returnToMenu()">MAIN MENU</button>
+</div>
+
+<!-- ── DEATH SCREEN ── -->
+<div class="screen hidden" id="death-screen" style="background:radial-gradient(ellipse at 50% 20%,#1a0000 0%,#0a0000 60%,#000000 100%);">
+  <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,transparent,#ff003c,#ff003c,transparent);box-shadow:0 0 20px #ff003c;"></div>
+  <div style="margin-bottom:8px;">
+    <div class="death-msg" id="death-msg-txt">YOU DIED</div>
+    <div style="width:200px;height:2px;background:rgba(255,0,60,0.4);margin:8px auto;"></div>
+  </div>
+  <div class="death-sub">GAME OVER</div>
+  <div style="font-size:10px;letter-spacing:4px;color:rgba(255,0,60,0.3);margin-bottom:32px;font-family:'Share Tech Mono';" id="death-score-disp"></div>
+  <button class="menu-btn" onclick="Game.retryStage()">↺ RETRY STAGE</button>
+  <button class="menu-btn danger" onclick="Game.returnToMenu()">⌂ MAIN MENU</button>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,transparent,#ff003c,#ff003c,transparent);box-shadow:0 0 20px #ff003c;opacity:0.5;"></div>
+</div>
+
+<!-- ── END SCREEN ── -->
+<div class="screen hidden" id="end-screen">
+  <canvas id="end-canvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3"></canvas>
+  <div class="story-text-box">
+    <div class="story-title">[ END TRANSMISSION ]</div>
+    <div class="story-body" id="end-body-txt"></div>
+    <button class="menu-btn" onclick="Game.finishGame()">CREDITS ▶</button>
+  </div>
+</div>
+
+<!-- ── FINISH SCREEN ── -->
+<div class="screen hidden" id="finish-screen" style="background:radial-gradient(ellipse at center,#0a0c1a 0%,#030510 80%);">
+  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ffe600,#ff6a00,#ff003c,#bf00ff,#00f5ff);"></div>
+  <div style="text-align:center;margin-bottom:40px;">
+    <div class="finish-title">✓ MISSION COMPLETE</div>
+    <div style="font-size:11px;letter-spacing:6px;color:rgba(255,230,0,0.4);font-family:'Rajdhani',sans-serif;margin-top:4px;">ALL FACILITIES NEUTRALISED</div>
+    <div style="width:320px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,230,0,0.4),transparent);margin:20px auto;"></div>
+    <div class="finish-score" id="final-score-txt">FINAL SCORE: 0</div>
+  </div>
+  <button class="menu-btn" onclick="Game.returnToMenu()">⌂ MAIN MENU</button>
+  <button class="menu-btn danger" onclick="Game.quit()">✕ QUIT</button>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ffe600,#ff6a00,#ff003c,#bf00ff,#00f5ff);"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PLAZMA SHOOTER — Complete Game Engine
+   ═══════════════════════════════════════════════════════════════ */
+
+// ── AUDIO MANAGER ──────────────────────────────────────────────
+const Audio = (() => {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const cache = {};
+  let masterVol = 0.8, bgmVol = 0.7, sfxVol = 0.8;
+  let currentBgm = null, bgmGain = null;
+
+  const AUDIO_FILES = {
+    // BGM
+    menu_bgm:           'audio/menu_bgm.mp3',
+    story_clip_bgm:     'audio/story_clip_bgm.mp3',
+    stage1_bgm:         'audio/stage1_bgm.mp3',
+    stage2_bgm:         'audio/stage2_bgm.mp3',
+    stage3_bgm:         'audio/stage3_bgm.mp3',
+    stage4_bgm:         'audio/stage4_bgm.mp3',
+    pking_theme:        'audio/pking_theme.mp3',
+    cking_theme:        'audio/cking_theme.mp3',
+    bking_theme:        'audio/bking_theme.mp3',
+    end_clip_bgm:       'audio/end_clip_bgm.mp3',
+    finish_screen_bgm:  'audio/finish_screen_bgm.mp3',
+    // SFX
+    button_click:        'audio/button_click.wav',
+    loading_screen:      'audio/loading_screen.wav',
+    autosave_notification:'audio/autosave_notification.wav',
+    player_shoot:        'audio/player_shoot.wav',
+    player_hurt:         'audio/player_hurt.wav',
+    electric_orb:        'audio/electric_orb.wav',
+    laser_beam:          'audio/laser_beam.wav',
+    flamethrower:        'audio/flamethrower.wav',
+    blackhole:           'audio/blackhole.wav',
+    nuclear_bomb:        'audio/nuclear_bomb.wav',
+    toxic_cloud:         'audio/toxic_cloud.wav',
+    acid_bottle:         'audio/acid_bottle.wav',
+    rock_impact:         'audio/rock_impact.wav',
+    powder_effect:       'audio/powder_effect.wav',
+    blindness_effect:    'audio/blindness_effect.wav',
+    oxidiser:            'audio/oxidiser.wav',
+    bacterial_cloud:     'audio/bacterial_cloud.wav',
+    snake_attack:        'audio/snake_attack.wav',
+    boss_death:          'audio/boss_death.wav',
+    body_deform:         'audio/body_deform.wav',
+    oxidisation:         'audio/oxidisation.wav',
+  };
+
+  async function load(key) {
+    if (cache[key]) return cache[key];
+    try {
+      const res = await fetch(AUDIO_FILES[key]);
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      cache[key] = await ctx.decodeAudioData(buf);
+      return cache[key];
+    } catch { return null; }
+  }
+
+  function playBgm(key) {
+    if (currentBgm) { try { currentBgm.stop(); } catch{} }
+    load(key).then(buf => {
+      if (!buf) return;
+      if (ctx.state === 'suspended') ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      bgmGain = ctx.createGain();
+      bgmGain.gain.value = masterVol * bgmVol;
+      src.connect(bgmGain).connect(ctx.destination);
+      src.start();
+      currentBgm = src;
+    });
+  }
+
+  function stopBgm() {
+    if (currentBgm) { try { currentBgm.stop(); } catch{} currentBgm = null; }
+  }
+
+  function playSfx(key) {
+    load(key).then(buf => {
+      if (!buf) return;
+      if (ctx.state === 'suspended') ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = masterVol * sfxVol;
+      src.connect(g).connect(ctx.destination);
+      src.start();
+    });
+  }
+
+  function setVolumes(m, b, s) {
+    masterVol = m; bgmVol = b; sfxVol = s;
+    if (bgmGain) bgmGain.gain.value = masterVol * bgmVol;
+  }
+
+  return { playBgm, stopBgm, playSfx, setVolumes };
+})();
+
+// ── SAVE MANAGER ──────────────────────────────────────────────
+const Save = {
+  KEY: 'plazma_save',
+  exists() { return !!localStorage.getItem(this.KEY); },
+  load()   { try { return JSON.parse(localStorage.getItem(this.KEY)); } catch { return null; } },
+  write(d) { localStorage.setItem(this.KEY, JSON.stringify(d)); },
+  clear()  { localStorage.removeItem(this.KEY); },
+};
+
+// ── PARTICLE SYSTEM ──────────────────────────────────────────
+const Particles = (() => {
+  const pCanvas = document.getElementById('particle-canvas');
+  const pCtx    = pCanvas.getContext('2d');
+  let particles = [];
+  let enabled = true;
+
+  function resize() {
+    pCanvas.width  = window.innerWidth;
+    pCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize); resize();
+
+  function spawn(x, y, color, count = 8, speed = 4) {
+    if (!enabled) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const s     = speed * (0.4 + Math.random());
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * s,
+        vy: Math.sin(angle) * s,
+        life: 1, decay: 0.025 + Math.random() * 0.03,
+        r: 2 + Math.random() * 3,
+        color
+      });
+    }
+  }
+
+  function spawnBg() {
+    if (!enabled) return;
+    const colors = ['#00f5ff','#bf00ff','#ff003c','#ffe600'];
+    for (let i=0; i<2; i++) {
+      particles.push({
+        x: Math.random() * pCanvas.width,
+        y: pCanvas.height + 4,
+        vx: (Math.random()-0.5)*0.5,
+        vy: -0.5 - Math.random()*1.5,
+        life: 1, decay: 0.004 + Math.random()*0.003,
+        r: 1 + Math.random()*2,
+        color: colors[Math.floor(Math.random()*colors.length)]
+      });
+    }
+  }
+
+  let last=0;
+  function tick(ts) {
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    if (ts - last > 120) { spawnBg(); last=ts; }
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.06;
+      p.life -= p.decay;
+      pCtx.globalAlpha = p.life;
+      pCtx.fillStyle = p.color;
+      pCtx.beginPath();
+      pCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      pCtx.fill();
+    }
+    pCtx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  return { spawn, setEnabled: v => { enabled = v; } };
+})();
+
+// ── SCREEN MANAGER ───────────────────────────────────────────
+const Screens = {
+  show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+  },
+  hide(id) { document.getElementById(id)?.classList.add('hidden'); },
+  showSettings() { document.getElementById('settings-panel').classList.remove('hidden'); },
+  hideSettings() { document.getElementById('settings-panel').classList.add('hidden'); },
+  showPause()   { document.getElementById('pause-panel').classList.remove('hidden'); },
+  hidePause()   { document.getElementById('pause-panel').classList.add('hidden'); },
+  showHud()     { document.getElementById('hud').classList.remove('hidden'); },
+  hideHud()     { document.getElementById('hud').classList.add('hidden'); },
+};
+
+// ── LOADING UTILITY ──────────────────────────────────────────
+function fakeLoad(duration, labelText, onDone) {
+  const bar = document.getElementById('loader-bar');
+  const lbl = document.getElementById('load-label');
+  if (lbl) lbl.textContent = labelText;
+  Screens.show('loading-screen');
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += (100 - pct) * 0.12 + 0.5;
+    if (pct > 99) { pct = 100; clearInterval(iv); bar.style.width='100%'; setTimeout(onDone, 320); }
+    else bar.style.width = pct + '%';
+  }, duration / 40);
+}
+
+// ── DAMAGE NUMBER DISPLAY ────────────────────────────────────
+function showDmgNum(x, y, amount, color='#ff003c') {
+  const el = document.createElement('div');
+  el.className = 'dmg-num';
+  el.textContent = '-' + amount;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.color = color;
+  el.style.textShadow = `0 0 10px ${color}`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ── STATUS MESSAGE ───────────────────────────────────────────
+let statusTimeout;
+function showStatus(msg, color='var(--neon-yellow)') {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.opacity = '1';
+  clearTimeout(statusTimeout);
+  statusTimeout = setTimeout(() => el.style.opacity='0', 2200);
+}
+
+// ── KILL FLASH ───────────────────────────────────────────────
+let flashTO;
+function killFlash() {
+  const el = document.getElementById('kill-flash');
+  el.style.opacity = '1';
+  clearTimeout(flashTO);
+  flashTO = setTimeout(() => el.style.opacity='0', 180);
+  Audio.playSfx('player_hurt');
+}
+
+// ── BLINDNESS ────────────────────────────────────────────────
+function applyBlindness(duration) {
+  const el = document.getElementById('blind-overlay');
+  el.style.opacity = '0.96';
+  Audio.playSfx('blindness_effect');
+  showStatus('BLIND!', 'var(--neon-yellow)');
+  setTimeout(() => el.style.opacity='0', duration);
+}
+
+// ────────────────────────────────────────────────────────────
+//  MAIN GAME ENGINE
+// ────────────────────────────────────────────────────────────
+const GameEngine = (() => {
+  const canvas = document.getElementById('game-canvas');
+  const ctx    = canvas.getContext('2d');
+
+  const W = 900, H = 500;
+  canvas.width  = W;
+  canvas.height = H;
+  canvas.style.display = 'block';
+  canvas.style.margin  = '0 auto';
+
+  function resize() {
+    const scaleW = window.innerWidth  / W;
+    const scaleH = window.innerHeight / H;
+    const scale  = Math.min(scaleW, scaleH);
+    canvas.style.width  = (W * scale) + 'px';
+    canvas.style.height = (H * scale) + 'px';
+    canvas.style.marginTop = ((window.innerHeight - H*scale)/2) + 'px';
+  }
+  window.addEventListener('resize', resize); resize();
+
+  /* ── State ── */
+  let state = 'idle'; // idle|running|paused|dead
+  let score = 0;
+  let stage = 1;
+  let rafId = null;
+
+  /* ── Player ── */
+  const MAX_HP = 20;
+  const player = {
+    x: W/2, y: H - 80,
+    w: 36, h: 44,
+    hp: MAX_HP,
+    speed: 3.8,
+    shootCooldown: 0,
+    SHOOT_RATE: 18,
+    bullets: [],
+    frozen: false, frozenTimer: 0,
+    magnetised: false, magnetTimer: 0,
+    frameTimer: 0, frame: 0,
+    color: '#00f5ff',
+  };
+
+  /* ── Enemies ── */
+  let enemies = [];
+  let projectiles = []; // enemy projectiles
+  let effects = [];     // visual effects
+
+  /* ── Keys ── */
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+  });
+  window.addEventListener('keyup', e => keys[e.code] = false);
+
+  /* ── Drawing helpers ── */
+  function drawRect(x,y,w,h,col,glow=false) {
+    ctx.fillStyle = col;
+    if (glow) {
+      ctx.shadowColor = col; ctx.shadowBlur = 16;
+    }
+    ctx.fillRect(x,y,w,h);
+    ctx.shadowBlur = 0;
+  }
+
+  function drawPlayer() {
+    const p = player;
+    const blink = (p.hp < 5 && Math.floor(Date.now()/120)%2);
+    if (blink) return;
+    const x = p.x, y = p.y;
+    const frozen = p.frozen;
+
+    ctx.save();
+    // Thruster glow at bottom
+    const thrustGrad = ctx.createRadialGradient(x, y+p.h/2, 0, x, y+p.h/2, 18);
+    thrustGrad.addColorStop(0, frozen?'rgba(150,200,255,0.6)':'rgba(0,245,255,0.7)');
+    thrustGrad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=thrustGrad; ctx.beginPath();ctx.ellipse(x,y+p.h/2+4,14,10,0,0,Math.PI*2);ctx.fill();
+
+    // Leg vents
+    ctx.fillStyle = frozen?'#8899bb':'#006688';
+    ctx.fillRect(x-14,y+14,10,12);
+    ctx.fillRect(x+4,y+14,10,12);
+
+    // Main body armour - hull
+    ctx.shadowColor = frozen?'#aaccff':'#00f5ff';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = frozen?'#7799cc':'#005577';
+    // lower torso
+    ctx.fillRect(x-16,y,32,18);
+    // upper torso (slightly narrower)
+    ctx.fillStyle = frozen?'#99bbdd':'#0077aa';
+    ctx.fillRect(x-14,y-14,28,16);
+    // shoulder pads
+    ctx.fillStyle = frozen?'#aaccee':'#00aadd';
+    ctx.fillRect(x-18,y-12,8,10);
+    ctx.fillRect(x+10,y-12,8,10);
+
+    // Helmet
+    ctx.fillStyle = frozen?'#bbddee':'#0099cc';
+    ctx.fillRect(x-12,y-26,24,14);
+    // Helmet ridge
+    ctx.fillStyle = frozen?'#ddeeff':'#00ccff';
+    ctx.fillRect(x-10,y-28,20,4);
+    // Visor (glowing)
+    ctx.shadowColor = frozen?'#ccddff':'#ffffff';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = frozen?'rgba(180,210,255,0.9)':'rgba(200,240,255,0.95)';
+    ctx.fillRect(x-9,y-24,18,8);
+    // Visor slit
+    ctx.fillStyle = frozen?'rgba(100,180,255,0.7)':'rgba(0,200,255,0.6)';
+    ctx.fillRect(x-7,y-22,14,4);
+
+    // Gun barrel (right side)
+    ctx.shadowColor = '#ff003c'; ctx.shadowBlur=10;
+    ctx.fillStyle='#cc0022';
+    ctx.fillRect(x+14,y-10,14,7);
+    // Gun muzzle tip
+    ctx.fillStyle='#ff4466';
+    ctx.fillRect(x+26,y-11,4,9);
+    // Gun body detail
+    ctx.fillStyle='#880011';
+    ctx.fillRect(x+14,y-7,8,4);
+    ctx.shadowBlur=0;
+
+    // Arm holding gun
+    ctx.fillStyle=frozen?'#99bbcc':'#007799';
+    ctx.fillRect(x+10,y-8,6,12);
+
+    // Chest emblem
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,245,255,0.6)';
+    ctx.beginPath();ctx.arc(x,y-4,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,245,255,0.3)';
+    ctx.beginPath();ctx.arc(x,y-4,3,0,Math.PI*2);ctx.fill();
+
+    // Magnetised purple ring
+    if(p.magnetised){
+      const mt = p.magnetTimer/300;
+      ctx.strokeStyle=`rgba(200,0,255,${0.4+Math.sin(bgTick*0.2)*0.3})`;
+      ctx.lineWidth=2+mt*2;
+      ctx.beginPath();ctx.arc(x, y, p.w*0.9+Math.sin(bgTick*0.15)*4, 0, Math.PI*2);ctx.stroke();
+      // metal fragments orbiting
+      for(let i=0;i<4;i++){
+        const ma=bgTick*0.08+i*1.57;
+        const mr=p.w+8;
+        ctx.fillStyle='rgba(180,180,180,0.7)';
+        ctx.fillRect(x+Math.cos(ma)*mr-3, y+Math.sin(ma)*mr-3, 6, 6);
+      }
+    }
+    // Frozen ice crack overlay
+    if(frozen){
+      ctx.strokeStyle='rgba(180,220,255,0.5)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x-10,y-20);ctx.lineTo(x+5,y);ctx.lineTo(x-5,y+10);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+8,y-18);ctx.lineTo(x-4,y+5);ctx.stroke();
+      ctx.strokeStyle='rgba(150,200,255,0.7)';ctx.lineWidth=2;
+      ctx.strokeRect(x-p.w/2-3,y-p.h/2-3,p.w+6,p.h+6);
+    }
+    ctx.restore();
+  }
+
+  function drawEnemy(e) {
+    const x=e.x, y=e.y, hw=e.w/2, hh=e.h/2;
+    ctx.save();
+    ctx.shadowColor=e.glowColor||'#ff003c';
+    ctx.shadowBlur=16;
+
+    switch(e.type){
+      case 'e1': {
+        // Gunner grunt: chunky humanoid with rifle
+        ctx.fillStyle='#883300';ctx.fillRect(x-12,y+6,24,14); // legs
+        ctx.fillStyle='#bb4400';ctx.fillRect(x-14,y-8,28,16); // torso
+        ctx.fillStyle='#cc6622';ctx.fillRect(x-10,y-20,20,14); // head
+        ctx.fillStyle='rgba(255,150,0,0.9)';ctx.fillRect(x-6,y-18,12,6); // visor
+        ctx.fillStyle='#ff4400';ctx.fillRect(x+12,y-4,14,5); // gun
+        ctx.fillStyle='#ffaa00';ctx.fillRect(x+24,y-5,3,7); // muzzle
+        break;
+      }
+      case 'p1': {
+        // Electric orb caster: floating sphere with arcs
+        const r=e.w/2-4;
+        const grad=ctx.createRadialGradient(x-4,y-4,2,x,y,r);
+        grad.addColorStop(0,'#88ccff');grad.addColorStop(0.5,'#2244ff');grad.addColorStop(1,'#0011aa');
+        ctx.fillStyle=grad;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+        // Electric arcs on sphere
+        ctx.strokeStyle=`rgba(100,200,255,${0.5+Math.sin(bgTick*0.3)*0.3})`;ctx.lineWidth=1.5;
+        for(let a=0;a<3;a++){const ang=bgTick*0.08+a*2.1;ctx.beginPath();ctx.arc(x,y,r*0.7,ang,ang+1.2);ctx.stroke();}
+        // Eye
+        ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(x,y-2,5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#0044ff';ctx.beginPath();ctx.arc(x,y-2,3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#000';ctx.beginPath();ctx.arc(x+1,y-2,1.5,0,Math.PI*2);ctx.fill();
+        break;
+      }
+      case 'p2': {
+        // Laser mech: angular robot with multi-barrel
+        ctx.fillStyle='#880088';ctx.fillRect(x-16,y+4,32,14); // legs
+        ctx.fillStyle='#aa00bb';ctx.fillRect(x-18,y-10,36,16); // torso (wide)
+        ctx.fillStyle='#cc00dd';ctx.fillRect(x-12,y-22,24,14); // head
+        // laser eyes
+        ctx.shadowColor='#ff00ff';ctx.shadowBlur=10;
+        ctx.fillStyle='#ff00ff';ctx.fillRect(x-8,y-18,5,4);ctx.fillRect(x+3,y-18,5,4);
+        // barrels
+        ctx.fillStyle='#ff44ff';
+        ctx.fillRect(x-18,y-8,16,4);ctx.fillRect(x-18,y-2,16,4);ctx.fillRect(x-18,y+4,16,4);
+        break;
+      }
+      case 'p3': {
+        // Flamethrower heavy: bulky with tank on back
+        ctx.fillStyle='#993300';ctx.fillRect(x-20,y+8,40,14); // legs
+        ctx.fillStyle='#cc4400';ctx.fillRect(x-22,y-8,44,18); // bulky torso
+        ctx.fillStyle='#dd5500';ctx.fillRect(x-14,y-22,28,16); // head
+        ctx.fillStyle='rgba(255,80,0,0.9)';ctx.fillRect(x-10,y-20,14,7); // visor
+        // Fuel tank
+        ctx.fillStyle='#441100';ctx.fillRect(x-26,y-12,10,24);
+        ctx.fillStyle='#882200';ctx.fillRect(x-27,y-6,3,12);
+        // Nozzle
+        ctx.fillStyle='#ff6600';ctx.fillRect(x+20,y,18,8);
+        ctx.fillStyle='#ff9900';ctx.fillRect(x+36,y-2,4,12);
+        // Flame tip
+        if(bgTick%6<3){ctx.fillStyle='rgba(255,200,0,0.8)';ctx.beginPath();ctx.arc(x+42,y+4,7,0,Math.PI*2);ctx.fill();}
+        else{ctx.fillStyle='rgba(255,100,0,0.8)';ctx.beginPath();ctx.arc(x+42,y+4,5,0,Math.PI*2);ctx.fill();}
+        break;
+      }
+      case 'pking': {
+        // PKING: imposing dark emperor with purple aura
+        ctx.shadowBlur=28;
+        // Cape / aura
+        ctx.fillStyle='rgba(100,0,180,0.15)';ctx.beginPath();ctx.ellipse(x,y+10,38,34,0,0,Math.PI*2);ctx.fill();
+        // Legs with boots
+        ctx.fillStyle='#110022';ctx.fillRect(x-14,y+10,12,16);ctx.fillRect(x+2,y+10,12,16);
+        ctx.fillStyle='#330055';ctx.fillRect(x-16,y+22,14,6);ctx.fillRect(x+2,y+22,14,6);
+        // Robes
+        ctx.fillStyle='#220033';ctx.beginPath();
+        ctx.moveTo(x-22,y-4);ctx.lineTo(x+22,y-4);ctx.lineTo(x+26,y+26);ctx.lineTo(x-26,y+26);ctx.closePath();ctx.fill();
+        // Torso plate
+        ctx.fillStyle='#440066';ctx.fillRect(x-16,y-12,32,18);
+        // Head / helmet
+        ctx.fillStyle='#330055';ctx.fillRect(x-14,y-28,28,18);
+        // Crown
+        ctx.fillStyle='#bf00ff';
+        ctx.fillRect(x-14,y-30,4,6);ctx.fillRect(x-7,y-33,4,8);ctx.fillRect(x,y-35,4,10);
+        ctx.fillRect(x+7,y-33,4,8);ctx.fillRect(x+10,y-30,4,6);
+        // Glowing eyes
+        ctx.shadowColor='#ff00ff';ctx.shadowBlur=12;
+        ctx.fillStyle='#ff00ff';ctx.beginPath();ctx.arc(x-5,y-22,4,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(x+5,y-22,4,0,Math.PI*2);ctx.fill();
+        // Dark orb in hand
+        const orbR=7+Math.sin(bgTick*0.1)*2;
+        ctx.shadowColor='#bf00ff';
+        const orbG=ctx.createRadialGradient(x+24,y,0,x+24,y,orbR);
+        orbG.addColorStop(0,'#ffffff');orbG.addColorStop(0.3,'#bf00ff');orbG.addColorStop(1,'rgba(80,0,150,0)');
+        ctx.fillStyle=orbG;ctx.beginPath();ctx.arc(x+24,y,orbR,0,Math.PI*2);ctx.fill();
+        break;
+      }
+      case 'c1': {
+        // Toxic cloud summoner: gas-masked creature
+        ctx.fillStyle='#224422';ctx.fillRect(x-12,y+4,24,14);
+        ctx.fillStyle='#336633';ctx.fillRect(x-14,y-8,28,14);
+        ctx.fillStyle='#226622';ctx.fillRect(x-11,y-20,22,14);
+        // Gas mask
+        ctx.fillStyle='#113311';ctx.beginPath();ctx.ellipse(x,y-14,9,8,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(0,255,80,0.6)';ctx.beginPath();ctx.ellipse(x-4,y-15,3,3,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(x+4,y-15,3,3,0,0,Math.PI*2);ctx.fill();
+        // Filter canisters
+        ctx.fillStyle='#447744';ctx.fillRect(x-16,y-12,5,8);ctx.fillRect(x+11,y-12,5,8);
+        // Toxic canister in hand
+        ctx.fillStyle='#00aa44';ctx.fillRect(x+13,y-2,10,8);
+        break;
+      }
+      case 'c2': {
+        // Acid thrower: lab coat villain
+        ctx.fillStyle='#888800';ctx.fillRect(x-10,y+6,20,12);
+        ctx.fillStyle='#aaaa00';ctx.fillRect(x-13,y-8,26,16);
+        ctx.fillStyle='#cccc00';ctx.fillRect(x-10,y-20,20,14);
+        // Goggles
+        ctx.fillStyle='#333300';ctx.fillRect(x-9,y-18,7,5);ctx.fillRect(x+2,y-18,7,5);
+        ctx.fillStyle='rgba(180,255,0,0.8)';ctx.fillRect(x-8,y-17,5,3);ctx.fillRect(x+3,y-17,5,3);
+        // Acid bottle
+        ctx.fillStyle='#88ff00';ctx.fillRect(x+13,y-6,8,12);
+        ctx.fillStyle='rgba(180,255,0,0.5)';ctx.fillRect(x+14,y-5,6,6);
+        // Drip
+        if(bgTick%8<4){ctx.fillStyle='rgba(120,255,0,0.8)';ctx.beginPath();ctx.arc(x+17,y+8,2,0,Math.PI*2);ctx.fill();}
+        break;
+      }
+      case 'c3': {
+        // Rock shooter: stone golem
+        ctx.fillStyle='#554433';ctx.fillRect(x-16,y+6,32,16);
+        ctx.fillStyle='#665544';ctx.fillRect(x-18,y-8,36,16);
+        ctx.fillStyle='#776655';ctx.fillRect(x-13,y-22,26,16);
+        // Rocky texture patches
+        ctx.fillStyle='#443322';
+        ctx.fillRect(x-16,y-6,6,6);ctx.fillRect(x+6,y+2,8,6);ctx.fillRect(x-10,y+10,6,4);
+        // Stone eyes
+        ctx.fillStyle='#cc8833';ctx.fillRect(x-7,y-18,6,5);ctx.fillRect(x+1,y-18,6,5);
+        // Rock fist
+        ctx.fillStyle='#887766';ctx.fillRect(x+18,y-4,14,14);
+        ctx.fillStyle='#776655';ctx.fillRect(x+16,y-6,8,6);
+        break;
+      }
+      case 'cking': {
+        // CKING: alchemist overlord in hazmat regalia
+        ctx.shadowBlur=24;
+        // Coat tails
+        ctx.fillStyle='#1a3311';
+        ctx.beginPath();ctx.moveTo(x-20,y+4);ctx.lineTo(x-28,y+28);ctx.lineTo(x-14,y+24);ctx.lineTo(x-10,y+4);ctx.fill();
+        ctx.beginPath();ctx.moveTo(x+20,y+4);ctx.lineTo(x+28,y+28);ctx.lineTo(x+14,y+24);ctx.lineTo(x+10,y+4);ctx.fill();
+        ctx.fillStyle='#224422';ctx.fillRect(x-16,y-8,32,16);
+        ctx.fillStyle='#336633';ctx.fillRect(x-14,y-8,8,16);ctx.fillRect(x+6,y-8,8,16); // lapels
+        // Head with wide-brim hat
+        ctx.fillStyle='#224422';ctx.fillRect(x-12,y-22,24,14);
+        ctx.fillStyle='#112211';ctx.fillRect(x-18,y-24,36,5); // hat brim
+        ctx.fillStyle='#1a3311';ctx.fillRect(x-10,y-36,20,14); // hat top
+        // Glowing gas-mask
+        ctx.fillStyle='#003300';ctx.beginPath();ctx.ellipse(x,y-17,9,7,0,0,Math.PI*2);ctx.fill();
+        ctx.shadowColor='#33ff33';ctx.shadowBlur=10;
+        ctx.fillStyle='rgba(0,255,80,0.7)';ctx.beginPath();ctx.ellipse(x-4,y-18,3,3,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(x+4,y-18,3,3,0,0,Math.PI*2);ctx.fill();
+        // Beaker/flask weapon
+        const flaskY=y;
+        ctx.shadowColor='#00ff44';
+        ctx.fillStyle='rgba(0,200,60,0.3)';ctx.fillRect(x+16,flaskY-8,14,16);
+        ctx.strokeStyle='#00ff44';ctx.lineWidth=2;ctx.strokeRect(x+16,flaskY-8,14,16);
+        ctx.fillStyle='rgba(0,255,80,0.6)';ctx.fillRect(x+17,flaskY-4,12,10); // liquid
+        ctx.fillStyle='#00aa44';ctx.fillRect(x+18,flaskY-12,10,5); // neck
+        break;
+      }
+      case 'bking': {
+        // BKING: biohorror overlord — tentacles and bioluminescence
+        ctx.shadowBlur=30;
+        // Tentacle appendages
+        ctx.strokeStyle=`rgba(200,0,120,${0.4+Math.sin(bgTick*0.05)*0.2})`;ctx.lineWidth=4;
+        for(let t2=0;t2<4;t2++){
+          const ang=t2*Math.PI/2+bgTick*0.02;
+          const tx2=x+Math.cos(ang)*28, ty2=y+Math.sin(ang)*24;
+          ctx.beginPath();ctx.moveTo(x,y+8);
+          ctx.quadraticCurveTo(x+Math.cos(ang+0.5)*20,y+Math.sin(ang+0.5)*20,tx2,ty2);
+          ctx.stroke();
+        }
+        // Central mass
+        const bioG=ctx.createRadialGradient(x-6,y-6,4,x,y,e.w/2-2);
+        bioG.addColorStop(0,'#441144');bioG.addColorStop(0.5,'#220033');bioG.addColorStop(1,'#110022');
+        ctx.fillStyle=bioG;ctx.beginPath();ctx.ellipse(x,y,e.w/2-2,e.h/2-2,bgTick*0.01,0,Math.PI*2);ctx.fill();
+        // Pulsing bioluminescent spots
+        for(let s=0;s<5;s++){
+          const sa=s*1.26+bgTick*0.04;
+          const sr=14, sx2=x+Math.cos(sa)*sr, sy2=y+Math.sin(sa)*sr;
+          const sAlpha=0.4+Math.sin(bgTick*0.08+s)*0.3;
+          ctx.shadowColor='#ff00aa';
+          ctx.fillStyle=`rgba(255,0,180,${sAlpha})`;
+          ctx.beginPath();ctx.arc(sx2,sy2,3,0,Math.PI*2);ctx.fill();
+        }
+        // Central eye
+        ctx.shadowColor='#ff00aa';ctx.shadowBlur=16;
+        ctx.fillStyle='#220022';ctx.beginPath();ctx.arc(x,y-4,10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#ff00aa';ctx.beginPath();ctx.arc(x,y-4,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#ff88cc';ctx.beginPath();ctx.arc(x-2,y-6,3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#000';ctx.beginPath();ctx.arc(x,y-4,3,0,Math.PI*2);ctx.fill();
+        break;
+      }
+    }
+
+    // HP bar (consistent across all enemies)
+    const hpPct = e.hp / e.maxHp;
+    const bw=e.w+10;
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#111';ctx.fillRect(x-bw/2,y-hh-10,bw,5);
+    const hpColor = hpPct>0.5?'#39ff14':hpPct>0.25?'#ffe600':'#ff003c';
+    ctx.fillStyle=hpColor;
+    ctx.shadowColor=hpColor;ctx.shadowBlur=6;
+    ctx.fillRect(x-bw/2,y-hh-10,bw*hpPct,5);
+    ctx.shadowBlur=0;
+    ctx.restore();
+  }
+
+  function drawProjectile(p) {
+    ctx.save();
+    ctx.shadowColor=p.color; ctx.shadowBlur=18;
+
+    if(p.subtype==='bullet'){
+      // Elongated bullet
+      ctx.fillStyle=p.color;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy,p.vx));
+      ctx.fillRect(-p.r*2,-p.r*0.6,p.r*3,p.r*1.2);ctx.restore();
+      ctx.fillStyle='rgba(255,200,150,0.5)';
+      ctx.beginPath();ctx.arc(p.x-p.vx*2,p.y-p.vy*2,p.r*0.5,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='orb'){
+      // Electric orb with arcing glow
+      const g=ctx.createRadialGradient(p.x-p.r*0.3,p.y-p.r*0.3,0,p.x,p.y,p.r);
+      g.addColorStop(0,'#ffffff');g.addColorStop(0.4,'#44aaff');g.addColorStop(1,'rgba(0,50,200,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='rgba(100,200,255,0.6)';ctx.lineWidth=1;
+      for(let i=0;i<3;i++){const a=bgTick*0.2+i*2.1;ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.8,a,a+0.8);ctx.stroke();}
+    } else if(p.subtype==='laser'){
+      // Laser beam: thin bright streak
+      ctx.strokeStyle=p.color;ctx.lineWidth=p.r*0.6;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*6,p.y-p.vy*6);ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=p.r*0.2;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*4,p.y-p.vy*4);ctx.stroke();
+    } else if(p.subtype==='flame'){
+      // Flame: irregular blob
+      const fAlpha=0.6+Math.sin(bgTick*0.3)*0.3;
+      ctx.fillStyle=`rgba(255,${80+Math.random()*80},0,${fAlpha})`;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(0.8+Math.random()*0.5),0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(255,200,0,${fAlpha*0.5})`;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.5,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='blackhole'){
+      // Black hole: dark swirl with purple rim
+      const bh=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      bh.addColorStop(0,'#000000');bh.addColorStop(0.6,'rgba(60,0,100,0.9)');bh.addColorStop(0.85,'rgba(180,0,255,0.7)');bh.addColorStop(1,'rgba(180,0,255,0)');
+      ctx.fillStyle=bh;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      // Swirl arcs
+      ctx.strokeStyle='rgba(200,0,255,0.5)';ctx.lineWidth=1.5;
+      for(let i=0;i<4;i++){const a=bgTick*0.06+i*1.57;ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.65,a,a+1.1);ctx.stroke();}
+    } else if(p.subtype==='knife'){
+      // Knife: thin silver rectangle, rotated
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy,p.vx)+Math.PI/4);
+      ctx.fillStyle='#cccccc';ctx.fillRect(-p.r,-p.r*0.3,p.r*2.5,p.r*0.6);
+      ctx.fillStyle='#888888';ctx.fillRect(-p.r,-p.r*0.3,p.r*0.5,p.r*0.6);
+      ctx.restore();
+    } else if(p.subtype==='toxic'||p.subtype==='bact'){
+      // Cloud puff
+      const cColor=p.subtype==='bact'?'rgba(180,0,180,':'rgba(0,200,60,';
+      ctx.fillStyle=cColor+`${0.12+Math.sin(bgTick*0.1)*0.04})`;
+      for(let i=0;i<5;i++){const a=i*1.26+bgTick*0.02;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*p.r*0.6,p.y+Math.sin(a)*p.r*0.6,p.r*0.55,0,Math.PI*2);ctx.fill();}
+      ctx.fillStyle=cColor+'0.18)';ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.7,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='acid'){
+      // Acid bottle in flight
+      ctx.fillStyle='rgba(120,255,0,0.85)';ctx.fillRect(p.x-4,p.y-7,8,14);
+      ctx.fillStyle='rgba(200,255,100,0.6)';ctx.fillRect(p.x-3,p.y-5,6,7);
+      ctx.fillStyle='#888';ctx.fillRect(p.x-3,p.y-9,6,3);
+    } else if(p.subtype==='rock'){
+      // Rock: irregular grey polygon
+      ctx.fillStyle='#997755';
+      ctx.beginPath();
+      const rs=p.r;
+      ctx.moveTo(p.x+rs*0.9,p.y-rs*0.2);ctx.lineTo(p.x+rs*0.3,p.y-rs*0.9);
+      ctx.lineTo(p.x-rs*0.7,p.y-rs*0.6);ctx.lineTo(p.x-rs*0.9,p.y+rs*0.3);
+      ctx.lineTo(p.x-rs*0.2,p.y+rs*0.9);ctx.lineTo(p.x+rs*0.8,p.y+rs*0.5);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(200,170,120,0.4)';ctx.beginPath();ctx.arc(p.x-rs*0.2,p.y-rs*0.2,rs*0.3,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='snake'){
+      // Snake: segmented green S-curve
+      ctx.strokeStyle='#33ff66';ctx.lineWidth=p.r*0.7;ctx.lineCap='round';
+      ctx.beginPath();
+      const st=bgTick*0.15;
+      ctx.moveTo(p.x,p.y);
+      ctx.bezierCurveTo(p.x+Math.sin(st)*p.r,p.y-p.r*1.5,p.x-Math.sin(st)*p.r,p.y-p.r*3,p.x,p.y-p.r*4.5);
+      ctx.stroke();
+      ctx.fillStyle='#33ff66';ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ff0000';ctx.beginPath();ctx.arc(p.x+1,p.y-1,1.5,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='nuke'){
+      // Nuclear bomb: big glowing radioactive ball
+      const nukeG=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      nukeG.addColorStop(0,'#ffffff');nukeG.addColorStop(0.3,'#ffff00');nukeG.addColorStop(0.7,'#ff6600');nukeG.addColorStop(1,'rgba(255,50,0,0)');
+      ctx.fillStyle=nukeG;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='rgba(255,200,0,0.7)';ctx.lineWidth=2;
+      for(let i=0;i<3;i++){const a=bgTick*0.05+i*2.094;ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.6,a,a+0.9);ctx.stroke();}
+      ctx.globalAlpha=0.25;ctx.fillStyle='#ff6600';
+      ctx.beginPath();ctx.arc(p.x-p.vx*4,p.y-p.vy*4,p.r*0.6,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='powder'){
+      // White puff cloud
+      ctx.shadowColor='#ddeeff';ctx.shadowBlur=14;
+      for(let i=0;i<4;i++){
+        const a=i*1.57+bgTick*0.03;
+        ctx.fillStyle=`rgba(210,230,255,${0.3+Math.sin(bgTick*0.15+i)*0.1})`;
+        ctx.beginPath();ctx.arc(p.x+Math.cos(a)*p.r*0.45,p.y+Math.sin(a)*p.r*0.45,p.r*0.55,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle='rgba(240,245,255,0.5)';ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.5,0,Math.PI*2);ctx.fill();
+      // "POWDER" particle dust
+      ctx.fillStyle='rgba(255,255,255,0.15)';
+      for(let i=0;i<6;i++){const a=i*1.047+bgTick*0.05;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*p.r,p.y+Math.sin(a)*p.r,2,0,Math.PI*2);ctx.fill();}
+    } else if(p.subtype==='blindchem'){
+      // Teal glass bottle
+      ctx.fillStyle='rgba(100,255,180,0.7)';ctx.fillRect(p.x-5,p.y-10,10,18);
+      ctx.fillStyle='rgba(180,255,220,0.5)';ctx.fillRect(p.x-3,p.y-8,6,8);
+      ctx.fillStyle='#888';ctx.fillRect(p.x-3,p.y-13,6,4);
+      ctx.strokeStyle='rgba(100,255,180,0.9)';ctx.lineWidth=1.5;ctx.strokeRect(p.x-5,p.y-10,10,18);
+      // Glow
+      ctx.shadowColor='#aaffcc';ctx.shadowBlur=12;
+    } else if(p.subtype==='oxidiser'){
+      // Orange glowing vial — looks dangerous
+      ctx.shadowColor='#ff8800';ctx.shadowBlur=20;
+      const oxG=ctx.createRadialGradient(p.x-3,p.y-3,0,p.x,p.y,p.r);
+      oxG.addColorStop(0,'#ffdd44');oxG.addColorStop(0.5,'#ff8800');oxG.addColorStop(1,'rgba(200,50,0,0)');
+      ctx.fillStyle=oxG;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      // Bubble details
+      ctx.strokeStyle='rgba(255,180,0,0.6)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*0.7,0,Math.PI*2);ctx.stroke();
+      // Trail sparks
+      ctx.globalAlpha=0.35;ctx.fillStyle='#ffaa00';
+      ctx.beginPath();ctx.arc(p.x-p.vx*5,p.y-p.vy*5,p.r*0.5,0,Math.PI*2);ctx.fill();
+    } else if(p.subtype==='acid_splash'||p.subtype==='blindchem_splash'){
+      // Small splash droplet
+      ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=8;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    } else {
+      // Default
+      ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(p.x-p.vx*3,p.y-p.vy*3,p.r*0.7,0,Math.PI*2);ctx.fill();
+    }
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  function drawEffect(ef) {
+    ctx.globalAlpha = ef.life;
+    ctx.shadowColor = ef.color;
+    ctx.shadowBlur  = 20;
+    ctx.fillStyle   = ef.color;
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, ef.r * (2 - ef.life), 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  }
+
+  // ── per-stage background tick counter ──
+  let bgTick = 0;
+
+  function drawBackground() {
+    bgTick++;
+    const t = bgTick;
+
+    if (stage === 1) {
+      // Factory: dark steel with orange-hot pipes
+      ctx.fillStyle = '#0d0806';
+      ctx.fillRect(0,0,W,H);
+      // Riveted panel lines
+      ctx.strokeStyle = 'rgba(255,120,0,0.08)';
+      ctx.lineWidth = 1;
+      for (let x=0;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for (let y=0;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      // Glowing pipe at top
+      ctx.strokeStyle = `rgba(255,${80+Math.sin(t*0.04)*40},0,0.5)`;
+      ctx.lineWidth = 8;
+      ctx.beginPath();ctx.moveTo(0,18);ctx.lineTo(W,18);ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,200,50,0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();ctx.moveTo(0,18);ctx.lineTo(W,18);ctx.stroke();
+      // Floor grating
+      ctx.fillStyle = 'rgba(255,80,0,0.12)';
+      ctx.fillRect(0,H-30,W,30);
+      ctx.strokeStyle = 'rgba(255,100,0,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();ctx.moveTo(0,H-30);ctx.lineTo(W,H-30);ctx.stroke();
+      for(let x=0;x<W;x+=30){
+        ctx.strokeStyle='rgba(255,60,0,0.15)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x,H-30);ctx.lineTo(x,H);ctx.stroke();
+      }
+    } else if (stage === 2) {
+      // Electric domain: dark blue with lightning arcs
+      ctx.fillStyle = '#020818';
+      ctx.fillRect(0,0,W,H);
+      // Circuit trace grid
+      ctx.strokeStyle = 'rgba(0,150,255,0.07)';
+      ctx.lineWidth=1;
+      for(let x=0;x<W;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=0;y<H;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      // Pulsing electric arcs
+      if(t%12<2){
+        ctx.strokeStyle = `rgba(80,180,255,${0.3+Math.random()*0.4})`;
+        ctx.lineWidth=1.5;
+        let ax=Math.random()*W;
+        ctx.beginPath();ctx.moveTo(ax,0);
+        for(let seg=0;seg<8;seg++){ax+=( Math.random()-0.5)*60;ctx.lineTo(ax,seg*H/8);}
+        ctx.stroke();
+      }
+      // Bottom energy field
+      const grad2=ctx.createLinearGradient(0,H-40,0,H);
+      grad2.addColorStop(0,`rgba(0,100,255,${0.1+Math.sin(t*0.05)*0.05})`);
+      grad2.addColorStop(1,'rgba(0,50,200,0.25)');
+      ctx.fillStyle=grad2;ctx.fillRect(0,H-40,W,40);
+      ctx.strokeStyle=`rgba(0,200,255,${0.4+Math.sin(t*0.05)*0.2})`;
+      ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
+    } else if (stage === 3) {
+      // Chemical lab: sickly green/yellow biohazard aesthetic
+      ctx.fillStyle = '#030d03';
+      ctx.fillRect(0,0,W,H);
+      // Hex grid pattern
+      const hx=52,hy=30;
+      ctx.strokeStyle='rgba(0,200,50,0.07)';ctx.lineWidth=1;
+      for(let row=0;row<H/hy+2;row++){
+        for(let col=0;col<W/hx+2;col++){
+          const ox=(row%2)*hx/2;
+          const cx=col*hx+ox,cy=row*hy;
+          ctx.beginPath();
+          for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.lineTo(cx+20*Math.cos(a),cy+20*Math.sin(a));}
+          ctx.closePath();ctx.stroke();
+        }
+      }
+      // Drifting toxic bubbles
+      for(let i=0;i<4;i++){
+        const bx=((t*0.3+i*240)%W);
+        const by=H-50+(Math.sin(t*0.02+i)*20);
+        ctx.beginPath();ctx.arc(bx,by,6+i*3,0,Math.PI*2);
+        ctx.fillStyle=`rgba(0,255,80,${0.04+i*0.02})`;ctx.fill();
+      }
+      ctx.fillStyle='rgba(0,180,40,0.1)';ctx.fillRect(0,H-30,W,30);
+      ctx.strokeStyle=`rgba(0,255,60,${0.4+Math.sin(t*0.04)*0.15})`;
+      ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,H-30);ctx.lineTo(W,H-30);ctx.stroke();
+    } else if (stage === 4) {
+      // Biological core: deep purple, organic membranes
+      ctx.fillStyle = '#05000d';
+      ctx.fillRect(0,0,W,H);
+      // Organic veiny lines
+      ctx.strokeStyle='rgba(200,0,120,0.07)';ctx.lineWidth=1.5;
+      for(let v=0;v<6;v++){
+        ctx.beginPath();
+        let vx=v*(W/5)+Math.sin(t*0.01+v)*30;
+        ctx.moveTo(vx,0);
+        for(let seg=1;seg<=10;seg++){
+          vx+=Math.sin(t*0.015+seg+v)*25;
+          ctx.lineTo(vx,seg*H/10);
+        }
+        ctx.stroke();
+      }
+      // Pulsing membrane at bottom
+      const pulse=0.06+Math.sin(t*0.03)*0.04;
+      ctx.fillStyle=`rgba(180,0,100,${pulse})`;ctx.fillRect(0,H-30,W,30);
+      ctx.strokeStyle=`rgba(255,0,180,${0.35+Math.sin(t*0.03)*0.2})`;
+      ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,H-30);ctx.lineTo(W,H-30);ctx.stroke();
+      // Spore particles
+      for(let s=0;s<3;s++){
+        const sx=((t*0.5+s*310)%W);
+        const sy=30+Math.sin(t*0.02+s*1.3)*15;
+        ctx.beginPath();ctx.arc(sx,sy,2,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,0,180,0.2)`;ctx.fill();
+      }
+    } else {
+      // Fallback
+      ctx.fillStyle='#030510';ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle='rgba(0,245,255,0.07)';ctx.lineWidth=1;
+      for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      ctx.strokeStyle='rgba(0,245,255,0.3)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(0,H-30);ctx.lineTo(W,H-30);ctx.stroke();
+    }
+  }
+
+  /* ── Enemy Factory ── */
+  function makeEnemy(type, x) {
+    const base = { x, y: H/2 - 60, dir: 1, shootTimer: 0, hp: 0, maxHp: 0,
+                   w: 44, h: 44, speed: 1.4, type, alive: true, color:'#ff4444', glowColor:'#ff0000' };
+    switch(type) {
+      case 'e1':
+        return {...base, hp:3, maxHp:3, color:'#ff6644', glowColor:'#ff4400', speed:1.2,
+                SHOOT_INTERVAL:90, shoot(me){ spawnProj(me, 0, 3, 5, '#ff8844', 3, 'bullet'); Audio.playSfx('player_shoot'); }};
+      case 'p1':
+        return {...base, hp:6, maxHp:6, color:'#4488ff', glowColor:'#0044ff', speed:1.1,
+                SHOOT_INTERVAL:110, shoot(me){ spawnProj(me, 0, 3.5, 7, '#00aaff', 3, 'orb'); Audio.playSfx('electric_orb'); }};
+      case 'p2':
+        return {...base, hp:8, maxHp:8, color:'#ff44ff', glowColor:'#ff00ff', speed:1.0,
+                SHOOT_INTERVAL:80, shoot(me){
+                  for(let i=-1;i<=1;i++) spawnProj(me, i*0.6, 4, 5, '#ff00ff', 2, 'laser');
+                  Audio.playSfx('laser_beam');
+                }};
+      case 'p3':
+        return {...base, hp:10, maxHp:10, color:'#ff8800', glowColor:'#ff4400', speed:0.9, w:52, h:52,
+                SHOOT_INTERVAL:140, shoot(me){
+                  // Burst of 3 flame blobs spread toward player
+                  const dx = player.x - me.x;
+                  const spread = [-0.8, 0, 0.8];
+                  for(let i=0;i<3;i++){
+                    const angle = (dx > 0 ? 0.3 : -0.3) + spread[i]*0.4;
+                    projectiles.push({
+                      x: me.x + spread[i]*20, y: me.y + me.h/2,
+                      vx: Math.sin(angle)*2.5 + spread[i]*0.6,
+                      vy: 2.8 + Math.abs(spread[i])*0.3,
+                      r: 16, color:'#ff6600', dmg:4, subtype:'flame',
+                      life: 140
+                    });
+                  }
+                  Audio.playSfx('flamethrower');
+                }};
+      case 'pking':
+        return {...base, hp:30, maxHp:30, color:'#220033', glowColor:'#bf00ff', speed:0.7, w:60, h:60,
+                SHOOT_INTERVAL:60, nukeCd:600, nukeCooldown:0,
+                attackPhase: 0, // cycles: 0=blackhole(magnet), 1=knives, 2=knives, 3=nuke
+                shoot(me){
+                  const ph = me.attackPhase % 4;
+                  me.attackPhase++;
+                  if(ph === 0){
+                    // Fire a magnetising blackhole bullet — dodgeable projectile
+                    // magnetism only activates if it HITS the player (handled in projectile hit)
+                    spawnProj(me, 0, 2.5, 22, '#bf00ff', 0, 'blackhole');
+                    Audio.playSfx('blackhole');
+                    showStatus('☢ MAGNETISE SHOT!','var(--neon-purple)');
+                  } else if(ph === 1 || ph === 2){
+                    // Knife volley — knives track player if magnetised, else straight
+                    for(let i=0;i<3;i++) setTimeout(()=>spawnProj(me, 0, 3.5, 4, '#cccccc', 1, 'knife'), i*220);
+                    Audio.playSfx('blackhole');
+                  } else {
+                    // Nuke — slow visible projectile, instant kill ONLY on contact
+                    spawnProj(me, 0, 1.8, 18, '#ff4400', 0, 'nuke');
+                    Audio.playSfx('nuclear_bomb');
+                    showStatus('☢ NUCLEAR BOMB INCOMING! DODGE IT!!','var(--neon-red)');
+                  }
+                }};
+      case 'c1':
+        return {...base, hp:10, maxHp:10, color:'#44aa44', glowColor:'#00ff44', speed:1.0,
+                SHOOT_INTERVAL:95, shoot(me){
+                  // 2 clouds, aimed toward player x
+                  const dx = player.x - me.x;
+                  for(let i=0;i<2;i++){
+                    projectiles.push({
+                      x: me.x + (i-0.5)*40, y: me.y + me.h/2,
+                      vx: (dx/Math.abs(dx||1))*0.8 + (Math.random()-0.5)*0.4,
+                      vy: 2.2,
+                      r: 32, color:'#00cc44', dmg:2, subtype:'toxic',
+                      life: 260
+                    });
+                  }
+                  Audio.playSfx('toxic_cloud');
+                }};
+      case 'c2':
+        return {...base, hp:12, maxHp:12, color:'#aacc00', glowColor:'#88ff00', speed:0.9,
+                SHOOT_INTERVAL:80, shoot(me){
+                  const vx = ((player.x - me.x)/Math.abs(player.x-me.x||1))*1.5 + (Math.random()-0.5)*1.5;
+                  projectiles.push({
+                    x: me.x, y: me.y + me.h/2,
+                    vx, vy: 4,
+                    r: 8, color:'#aaff00', dmg:2, subtype:'acid',
+                    splash: true, life: 200
+                  });
+                  Audio.playSfx('acid_bottle');
+                }};
+      case 'c3':
+        return {...base, hp:14, maxHp:14, color:'#996633', glowColor:'#cc8833', speed:1.1,
+                SHOOT_INTERVAL:75, shoot(me){ spawnProj(me,(Math.random()-0.5)*1,5,9,'#cc9955',3,'rock'); Audio.playSfx('rock_impact'); }};
+      case 'cking':
+        return {...base, hp:35, maxHp:35, color:'#226622', glowColor:'#33ff33', speed:0.6, w:58, h:58,
+                SHOOT_INTERVAL:65, attackPhase:0,
+                shoot(me){
+                  const ph = me.attackPhase % 5;
+                  me.attackPhase++;
+                  if(ph === 0 || ph === 2){
+                    // White powder puff — hits player: freeze
+                    const dx = player.x - me.x;
+                    projectiles.push({
+                      x: me.x, y: me.y + me.h/2,
+                      vx: (dx / Math.abs(dx||1)) * 2.5,
+                      vy: 3,
+                      r: 20, color:'#ddeeff', dmg:0, subtype:'powder',
+                      life: 180
+                    });
+                    Audio.playSfx('powder_effect');
+                  } else if(ph === 1 || ph === 3){
+                    // Blind chemical bottle — hits player: blindness
+                    const dx = player.x - me.x;
+                    projectiles.push({
+                      x: me.x, y: me.y + me.h/2,
+                      vx: (dx / Math.abs(dx||1)) * 3 + (Math.random()-0.5),
+                      vy: 3.5,
+                      r: 10, color:'#aaffcc', dmg:0, subtype:'blindchem',
+                      splash:true, life: 200
+                    });
+                    Audio.playSfx('blindness_effect');
+                  } else {
+                    // Oxidiser — hits player: instant death (rare, visible)
+                    projectiles.push({
+                      x: me.x, y: me.y + me.h/2,
+                      vx: (player.x - me.x) / 60,
+                      vy: 2.5,
+                      r: 14, color:'#ff8800', dmg:0, subtype:'oxidiser',
+                      life: 240
+                    });
+                    Audio.playSfx('oxidiser');
+                    showStatus('⚗ OXIDISER LAUNCHED!','#ff8800');
+                  }
+                }};
+      case 'bking':
+        return {...base, hp:40, maxHp:40, color:'#110022', glowColor:'#ff00aa', speed:0.5, w:64, h:64,
+                SHOOT_INTERVAL:55, shoot(me){
+                  const r=Math.random();
+                  if(r<0.33){ spawnCloud(me,'#993399',2,'bact'); Audio.playSfx('bacterial_cloud'); }
+                  else if(r<0.66){ spawnProj(me,(Math.random()-0.5),3.5,10,'#33ff66',3,'snake'); Audio.playSfx('snake_attack'); }
+                  else { killPlayer('DNA','Your DNA was manipulated so your Body Deformed!!'); Audio.playSfx('body_deform'); }
+                }};
+    }
+    return base;
+  }
+
+  function spawnProj(e, vxOff, vy, r, color, dmg, subtype) {
+    projectiles.push({
+      x: e.x, y: e.y + e.h/2,
+      vx: vxOff, vy,
+      r, color, dmg, subtype,
+      life: 200
+    });
+  }
+
+  function spawnCloud(e, color, dmg, subtype) {
+    projectiles.push({
+      x: e.x + (Math.random()-0.5)*60,
+      y: e.y,
+      vx: (Math.random()-0.5)*0.5,
+      vy: 1.5,
+      r: 22, color, dmg, subtype,
+      life: 140
+    });
+  }
+
+  function spawnSplash(p) {
+    // Spawn radial splash projectiles from impact point
+    const count = (p.subtype === 'acid') ? 5 : 4;
+    const splashColor = p.color;
+    const dmg = (p.subtype === 'acid') ? 1 : 0;
+    for(let i=0;i<count;i++){
+      const angle = (i/count)*Math.PI*2;
+      projectiles.push({
+        x: p.x, y: p.y,
+        vx: Math.cos(angle)*3.5,
+        vy: Math.sin(angle)*2 - 1,
+        r: 5, color: splashColor, dmg, subtype: p.subtype+'_splash',
+        life: 40
+      });
+    }
+    Particles.spawn(p.x, p.y, splashColor, 12, 4);
+  }
+
+  /* ── Stage Definitions (wave-based) ── */
+  // waves: array of waves; each wave spawns only after previous wave is fully cleared
+  const STAGE_DEFS = {
+    1: {
+      bgm: 'stage1_bgm', label: 'STAGE 1 — FACTORY BREACH',
+      boss: null, bossBgm: null,
+      waves: [
+        [ {type:'e1',x:150},{type:'e1',x:280},{type:'e1',x:410},{type:'e1',x:540},{type:'e1',x:670} ],
+        [ {type:'e1',x:220},{type:'e1',x:500} ],
+      ]
+    },
+    2: {
+      bgm: 'stage2_bgm', label: 'STAGE 2 — ELECTRIC DOMAIN',
+      boss: 'pking', bossBgm: 'pking_theme',
+      waves: [
+        [ {type:'p1',x:200},{type:'p1',x:450},{type:'p1',x:700} ],
+        [ {type:'p2',x:250},{type:'p2',x:650} ],
+        [ {type:'p3',x:300},{type:'p3',x:600} ],
+        [ {type:'pking',x:450} ],
+      ]
+    },
+    3: {
+      bgm: 'stage3_bgm', label: 'STAGE 3 — CHEMICAL LABORATORY',
+      boss: 'cking', bossBgm: 'cking_theme',
+      waves: [
+        [ {type:'c1',x:200},{type:'c1',x:450},{type:'c1',x:700} ],
+        [ {type:'c2',x:250},{type:'c2',x:650} ],
+        [ {type:'c3',x:300},{type:'c3',x:600} ],
+        [ {type:'cking',x:450} ],
+      ]
+    },
+    4: {
+      bgm: 'stage4_bgm', label: 'STAGE 4 — BIOLOGICAL CORE',
+      boss: 'bking', bossBgm: 'bking_theme',
+      waves: [
+        [ {type:'bking',x:450} ],
+      ]
+    },
+  };
+
+  /* ── Wave tracking ── */
+  let currentWave = 0;
+  let waveTransitioning = false;
+
+  /* ── Spawn a single wave ── */
+  function spawnWave(waveIndex) {
+    const def = STAGE_DEFS[stage];
+    const waveDef = def.waves[waveIndex];
+    enemies = [];
+    projectiles = [];
+    waveTransitioning = false;
+
+    waveDef.forEach((ed, i) => {
+      const en = makeEnemy(ed.type, ed.x);
+      en.y = 100 + (i % 3) * 55;
+      en.shootTimer = Math.floor(Math.random() * en.SHOOT_INTERVAL);
+      enemies.push(en);
+    });
+
+    // Switch to boss BGM when boss wave starts
+    const isBossWave = waveDef.some(ed => ed.type === def.boss);
+    if (isBossWave && def.bossBgm) {
+      document.getElementById('boss-bar-wrap').style.display = 'block';
+      document.getElementById('boss-name').textContent = def.boss.toUpperCase();
+      Audio.playBgm(def.bossBgm);
+    }
+
+    const waveNum = waveIndex + 1;
+    const totalWaves = def.waves.length;
+    showStatus('WAVE ' + waveNum + ' / ' + totalWaves, 'var(--neon-yellow)');
+    const wl = document.getElementById('wave-label');
+    if(wl) wl.textContent = 'WAVE ' + waveNum + ' / ' + totalWaves;
+  }
+
+  /* ── Load Stage ── */
+  function loadStage(s) {
+    stage = s;
+    currentWave = 0;
+    waveTransitioning = false;
+    const def = STAGE_DEFS[s];
+    enemies = [];
+    projectiles = [];
+    effects = [];
+    player.hp = MAX_HP;
+    player.frozen = false;
+    player.magnetised = false;
+    player.magnetTimer = 0;
+    player.bullets = [];
+    player.x = W/2;
+
+    // HUD
+    document.getElementById('stage-label').textContent = def.label;
+    const stageColors={1:'#ff8844',2:'#00aaff',3:'#44ff88',4:'#ff44aa'};
+    const sl=document.getElementById('stage-label');
+    if(sl){sl.style.color=stageColors[s]||'var(--neon-yellow)';sl.style.textShadow='0 0 14px '+(stageColors[s]||'var(--neon-yellow)');}
+    document.getElementById('boss-bar-wrap').style.display = 'none';
+    Audio.playBgm(def.bgm);
+    updateHud();
+
+    // Spawn first wave
+    spawnWave(0);
+  }
+
+  function updateHud() {
+    const pct = (player.hp / MAX_HP) * 100;
+    document.getElementById('hp-bar').style.width = pct + '%';
+    document.getElementById('hp-num').textContent  = player.hp + '/' + MAX_HP;
+    document.getElementById('score-label').textContent = 'SCORE: ' + score;
+
+    // Update boss bar if a boss is currently alive on screen
+    const def  = STAGE_DEFS[stage];
+    if (def.boss) {
+      const boss = enemies.find(e => e.type === def.boss && e.alive);
+      if (boss) {
+        document.getElementById('boss-bar-wrap').style.display = 'block';
+        document.getElementById('boss-bar').style.width = (boss.hp / boss.maxHp * 100) + '%';
+      }
+    }
+  }
+
+  /* ── Player Shoot ── */
+  function playerShoot() {
+    player.bullets.push({ x: player.x + player.w/2 + 2, y: player.y - player.h/2, vy: -7, r: 5 });
+    Audio.playSfx('player_shoot');
+    Particles.spawn(player.x + player.w/2, player.y - player.h/2, '#00f5ff', 4, 3);
+  }
+
+  /* ── Kill Player ── */
+  function killPlayer(type, msg) {
+    if (state !== 'running') return;
+    state = 'dead';
+    Audio.stopBgm();
+    cancelAnimationFrame(rafId); rafId = null;
+    document.getElementById('death-msg-txt').textContent = msg || 'YOU DIED';
+    const ds = document.getElementById('death-score-disp');
+    if(ds) ds.textContent = 'SCORE: ' + score;
+    Screens.hideHud();
+    document.getElementById('boss-bar-wrap').style.display = 'none';
+
+    if (type === 'NUCLEAR') {
+      playNuclearDeath(() => Screens.show('death-screen'));
+    } else if (type === 'OXIDISE') {
+      playOxidiseDeath(() => Screens.show('death-screen'));
+    } else {
+      setTimeout(() => Screens.show('death-screen'), 700);
+    }
+  }
+
+  /* ── NUCLEAR death: shred player into particle fragments ── */
+  function playNuclearDeath(cb) {
+    // Flash white, then explode player into hundreds of flying chunks
+    const overlay = document.getElementById('kill-flash');
+    overlay.style.background = 'rgba(255,255,255,1)';
+    overlay.style.opacity = '1';
+    setTimeout(() => { overlay.style.background = 'rgba(255,0,60,0.22)'; overlay.style.opacity = '0'; }, 120);
+
+    const dc = document.createElement('canvas');
+    dc.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:998;pointer-events:none;';
+    document.body.appendChild(dc);
+    dc.width = window.innerWidth; dc.height = window.innerHeight;
+    const dctx = dc.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width / W;
+    const px = rect.left + player.x * scale;
+    const py = rect.top  + player.y * scale;
+
+    // Create ~80 flying particle chunks
+    const chunks = [];
+    const colors = ['#00f5ff','#00aacc','#ffffff','#ff4400','#ffaa00','#ff003c'];
+    for(let i=0;i<80;i++){
+      const angle = Math.random()*Math.PI*2;
+      const spd = 3 + Math.random()*14;
+      chunks.push({
+        x:px+(Math.random()-0.5)*20, y:py+(Math.random()-0.5)*30,
+        vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd - Math.random()*4,
+        rot:Math.random()*Math.PI*2, rotV:(Math.random()-0.5)*0.4,
+        w:3+Math.random()*10, h:2+Math.random()*6,
+        color:colors[Math.floor(Math.random()*colors.length)],
+        alpha:1, decay:0.012+Math.random()*0.015
+      });
+    }
+    // Extra nucleon sparks (tiny)
+    for(let i=0;i<60;i++){
+      const angle=Math.random()*Math.PI*2, spd=8+Math.random()*20;
+      chunks.push({
+        x:px, y:py,
+        vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
+        rot:0, rotV:0, w:2, h:2,
+        color:'#ffffff', alpha:1, decay:0.02+Math.random()*0.02
+      });
+    }
+
+    let frame=0;
+    function animNuke() {
+      dctx.clearRect(0,0,dc.width,dc.height);
+      // Shockwave ring
+      if(frame<30){
+        const r=(frame/30)*200;
+        dctx.strokeStyle=`rgba(255,200,0,${1-frame/30})`;
+        dctx.lineWidth=4-frame/10;
+        dctx.beginPath();dctx.arc(px,py,r,0,Math.PI*2);dctx.stroke();
+        dctx.strokeStyle=`rgba(255,100,0,${0.5-frame/60})`;
+        dctx.lineWidth=12-frame/3;
+        dctx.beginPath();dctx.arc(px,py,r*0.6,0,Math.PI*2);dctx.stroke();
+      }
+      let alive=false;
+      for(const c of chunks){
+        if(c.alpha<=0) continue;
+        alive=true;
+        c.x+=c.vx; c.y+=c.vy; c.vy+=0.3;
+        c.vx*=0.98; c.rot+=c.rotV; c.alpha-=c.decay;
+        dctx.save();
+        dctx.globalAlpha=Math.max(0,c.alpha);
+        dctx.shadowColor=c.color; dctx.shadowBlur=6;
+        dctx.fillStyle=c.color;
+        dctx.translate(c.x,c.y); dctx.rotate(c.rot);
+        dctx.fillRect(-c.w/2,-c.h/2,c.w,c.h);
+        dctx.restore();
+      }
+      frame++;
+      if(alive && frame<120){ requestAnimationFrame(animNuke); }
+      else { dc.remove(); cb(); }
+    }
+    requestAnimationFrame(animNuke);
+  }
+
+  /* ── OXIDISE death: player dissolves into expanding gas ── */
+  function playOxidiseDeath(cb) {
+    const dc = document.createElement('canvas');
+    dc.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:998;pointer-events:none;';
+    document.body.appendChild(dc);
+    dc.width = window.innerWidth; dc.height = window.innerHeight;
+    const dctx = dc.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width / W;
+    const px = rect.left + player.x * scale;
+    const py = rect.top  + player.y * scale;
+    const ph = player.h * scale;
+    const pw = player.w * scale;
+
+    // Player silhouette dissolves into orange gas particles
+    const gas = [];
+    for(let i=0;i<120;i++){
+      gas.push({
+        x: px + (Math.random()-0.5)*pw,
+        y: py + (Math.random()-0.5)*ph,
+        vx: (Math.random()-0.5)*1.8,
+        vy: -(0.5+Math.random()*2.5),
+        r: 4+Math.random()*12,
+        color: Math.random()<0.5 ? '#ff8800' : (Math.random()<0.5 ? '#ffaa00' : '#cc4400'),
+        alpha:1, decay:0.007+Math.random()*0.01
+      });
+    }
+    // A few bright oxidation sparks
+    for(let i=0;i<30;i++){
+      gas.push({
+        x:px+(Math.random()-0.5)*pw*1.5, y:py+(Math.random()-0.5)*ph,
+        vx:(Math.random()-0.5)*3, vy:-(1+Math.random()*3),
+        r:2, color:'#ffffff', alpha:1, decay:0.025
+      });
+    }
+
+    let frame=0;
+    // Body opacity shrinks as gas grows
+    function animOxidise(){
+      dctx.clearRect(0,0,dc.width,dc.height);
+      // Draw fading player body (rectangle stands in for sprite)
+      const bodyAlpha = Math.max(0, 1 - frame/40);
+      if(bodyAlpha>0){
+        dctx.globalAlpha=bodyAlpha;
+        dctx.fillStyle='#005577';
+        dctx.shadowColor='#00f5ff'; dctx.shadowBlur=10*bodyAlpha;
+        dctx.fillRect(px-pw/2, py-ph/2, pw, ph);
+        dctx.shadowBlur=0;
+        dctx.globalAlpha=1;
+      }
+      let alive=false;
+      for(const g of gas){
+        if(g.alpha<=0) continue;
+        alive=true;
+        g.x+=g.vx; g.y+=g.vy; g.vx*=0.97;
+        g.alpha-=g.decay;
+        dctx.save();
+        dctx.globalAlpha=Math.max(0,g.alpha)*0.7;
+        dctx.shadowColor=g.color; dctx.shadowBlur=g.r;
+        dctx.fillStyle=g.color;
+        dctx.beginPath();dctx.arc(g.x,g.y,g.r*(1+frame*0.015),0,Math.PI*2);dctx.fill();
+        dctx.restore();
+      }
+      frame++;
+      if(alive && frame<100){ requestAnimationFrame(animOxidise); }
+      else { dc.remove(); cb(); }
+    }
+    requestAnimationFrame(animOxidise);
+  }
+
+  /* ── Damage Player ── */
+  function damagePlayer(amount, proj) {
+    if (state !== 'running') return;
+    player.hp = Math.max(0, player.hp - amount);
+    killFlash();
+    Particles.spawn(player.x, player.y, '#ff003c', 10, 5);
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width / W;
+    showDmgNum(rect.left + player.x*scale, rect.top + player.y*scale - 40, amount, '#ff003c');
+    updateHud();
+    if (player.hp <= 0) triggerKingFinisher();
+  }
+
+  function triggerKingFinisher() {
+    // Check if a king is alive — if so, use their finisher instead of plain death
+    const pking = enemies.find(e => e.type === 'pking' && e.alive);
+    const cking = enemies.find(e => e.type === 'cking' && e.alive);
+    const bking = enemies.find(e => e.type === 'bking' && e.alive);
+
+    if (pking) {
+      // PKING: launches nuke, then you get shredded to nucleons
+      state = 'dead';
+      AudioMgr.stopBgm();
+      cancelAnimationFrame(rafId); rafId = null;
+      Screens.hideHud();
+      document.getElementById('boss-bar-wrap').style.display = 'none';
+      showStatus('☢ PKING FIRES THE NUCLEAR BOMB!!', 'var(--neon-red)');
+      AudioMgr.playSfx('nuclear_bomb');
+      // Brief pause for dramatic effect, then nuke death
+      setTimeout(() => {
+        document.getElementById('death-msg-txt').textContent = 'Your Body was Shredded to Nucleons!!';
+        const ds = document.getElementById('death-score-disp');
+        if (ds) ds.textContent = 'SCORE: ' + score;
+        playNuclearDeath(() => Screens.show('death-screen'));
+      }, 800);
+
+    } else if (cking) {
+      // CKING: fires oxidiser, then you get oxidised
+      state = 'dead';
+      AudioMgr.stopBgm();
+      cancelAnimationFrame(rafId); rafId = null;
+      Screens.hideHud();
+      document.getElementById('boss-bar-wrap').style.display = 'none';
+      showStatus('⚗ CKING OXIDISES YOU!!', '#ff8800');
+      AudioMgr.playSfx('oxidiser');
+      setTimeout(() => {
+        document.getElementById('death-msg-txt').textContent = 'You were Oxidised LoL!!';
+        const ds = document.getElementById('death-score-disp');
+        if (ds) ds.textContent = 'SCORE: ' + score;
+        playOxidiseDeath(() => Screens.show('death-screen'));
+      }, 800);
+
+    } else if (bking) {
+      // BKING: uses DNA deform finisher
+      state = 'dead';
+      AudioMgr.stopBgm();
+      cancelAnimationFrame(rafId); rafId = null;
+      Screens.hideHud();
+      document.getElementById('boss-bar-wrap').style.display = 'none';
+      showStatus('🧬 BKING REWRITES YOUR DNA!!', '#ff00aa');
+      AudioMgr.playSfx('body_deform');
+      setTimeout(() => {
+        document.getElementById('death-msg-txt').textContent = 'Your DNA was manipulated so your Body Deformed!!';
+        const ds = document.getElementById('death-score-disp');
+        if (ds) ds.textContent = 'SCORE: ' + score;
+        // Reuse oxidise death visually (green/purple tint) for the deform
+        playOxidiseDeath(() => Screens.show('death-screen'));
+      }, 800);
+
+    } else {
+      // No king present — plain death
+      killPlayer('normal', 'YOU DIED');
+    }
+  }
+
+  /* ── Stage Clear ── */
+  function stageClear() {
+    if (state !== 'running') return;
+    state = 'idle';
+    Audio.stopBgm();
+    Audio.playSfx('autosave_notification');
+    cancelAnimationFrame(rafId);
+
+    // show autosave
+    const stageNames = {1:'STAGE 1',2:'STAGE 2',3:'STAGE 3',4:'STAGE 4'};
+    document.getElementById('autosave-stage-txt').textContent = stageNames[stage] + ' COMPLETE';
+    Screens.hideHud();
+    document.getElementById('boss-bar-wrap').style.display = 'none';
+    Screens.show('autosave-screen');
+
+    const nextStage = stage + 1;
+    const save = { stage: nextStage, score };
+    Save.write(save);
+
+    setTimeout(() => {
+      if (nextStage > 4) {
+        // End clips
+        fakeLoad(1000, 'LOADING END SEQUENCE...', () => {
+          Screens.show('end-screen');
+          document.getElementById('end-body-txt').textContent =
+            'The facility fell silent. The Plazma Shooter stood alone amid the wreckage of science gone wrong.\n\nBiological weapons: neutralised.\nChemical agents: contained.\nPhysics anomalies: collapsed.\n\nBut at what cost?';
+          Audio.playBgm('end_clip_bgm');
+        });
+      } else {
+        fakeLoad(1000, 'LOADING STAGE ' + nextStage + '...', () => {
+          startStage(nextStage);
+        });
+      }
+    }, 2200);
+  }
+
+  /* ── Start Stage ── */
+  function startStage(s) {
+    state = 'running';
+    // Hide all screens & panels cleanly
+    document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+    document.getElementById('pause-panel').classList.add('hidden');
+    document.getElementById('settings-panel').classList.add('hidden');
+    loadStage(s);
+    canvas.style.display = 'block';
+    Screens.showHud();
+    loop();
+  }
+
+  /* ── MAIN LOOP ── */
+  function loop() {
+    if (state !== 'running') return;
+    rafId = requestAnimationFrame(loop);
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+
+    // ── Player movement
+    if (!player.frozen) {
+      if (keys['KeyA'] || keys['ArrowLeft'])  player.x = Math.max(player.w/2, player.x - player.speed * 2.2);
+      if (keys['KeyD'] || keys['ArrowRight']) player.x = Math.min(W - player.w/2, player.x + player.speed * 2.2);
+    } else {
+      player.frozenTimer--;
+      if (player.frozenTimer % 48 === 0 && player.frozenTimer > 0) {
+        damagePlayer(1, null);
+        showStatus('POWDER BURNING... -1', '#ddeeff');
+      }
+      if (player.frozenTimer <= 0) player.frozen = false;
+    }
+    // freeze cking timer
+    if (enemies.find(e=>e.type==='cking' && e.alive)) {
+      const ck = enemies.find(e=>e.type==='cking');
+      if (ck.blindCooldown > 0) ck.blindCooldown--;
+    }
+
+    // ── Player shoot
+    player.shootCooldown--;
+    if ((keys['Space'] || keys['KeyZ']) && player.shootCooldown <= 0) {
+      playerShoot();
+      player.shootCooldown = player.SHOOT_RATE;
+    }
+
+    // ── Player bullets
+    player.bullets = player.bullets.filter(b => b.y > -10);
+    for (const b of player.bullets) {
+      b.y += b.vy;
+      ctx.shadowColor = '#00f5ff'; ctx.shadowBlur = 12;
+      ctx.fillStyle = '#00f5ff';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // hit enemies
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        if (Math.abs(b.x - e.x) < e.w/2 && Math.abs(b.y - e.y) < e.h/2) {
+          b.y = -999;
+          e.hp--;
+          score += 10;
+          Particles.spawn(b.x, b.y, '#00f5ff', 6, 3);
+          const rect = canvas.getBoundingClientRect();
+          const scale = rect.width/W;
+          showDmgNum(rect.left+e.x*scale, rect.top+e.y*scale-40, 1, '#00f5ff');
+          if (e.hp <= 0) {
+            e.alive = false;
+            score += 100;
+            Particles.spawn(e.x, e.y, e.glowColor, 18, 6);
+            Audio.playSfx('boss_death');
+            effects.push({x:e.x, y:e.y, r:e.w, color:e.glowColor, life:1});
+          }
+          break;
+        }
+      }
+    }
+
+    // ── Enemies
+    enemies = enemies.filter(e => {
+      if (!e.alive) return false;
+      e.x += e.speed * e.dir;
+      if (e.x > W - e.w/2 || e.x < e.w/2) e.dir *= -1;
+      // boss pking magnetism — only active when player was hit by magnet shot
+      if (e.type==='pking' && e.alive && player.magnetised) {
+        const dx = e.x - player.x;
+        player.x += dx * 0.012;
+        player.x = Math.max(player.w/2, Math.min(W - player.w/2, player.x));
+      }
+      // shoot
+      e.shootTimer++;
+      if (e.shootTimer >= e.SHOOT_INTERVAL) {
+        e.shootTimer = 0;
+        e.shoot(e);
+        if (e.nukeCooldown !== undefined && e.nukeCooldown > 0) e.nukeCooldown--;
+      }
+      drawEnemy(e);
+      return true;
+    });
+
+    // ── Magnetism timer tick
+    if (player.magnetised) {
+      player.magnetTimer--;
+      if (player.magnetTimer <= 0) {
+        player.magnetised = false;
+        showStatus('MAGNETISM FADED', 'var(--neon-purple)');
+      }
+    }
+
+    // ── Enemy projectiles
+    projectiles = projectiles.filter(p => {
+      // Knives track player when magnetised
+      if (p.subtype === 'knife' && player.magnetised) {
+        const dx = player.x - p.x;
+        const dy = player.y - p.y;
+        const dist2 = Math.hypot(dx, dy);
+        if (dist2 > 1) {
+          p.vx += (dx / dist2) * 0.4;
+          p.vy += (dy / dist2) * 0.4;
+          // cap speed
+          const spd = Math.hypot(p.vx, p.vy);
+          if (spd > 5) { p.vx = p.vx/spd*5; p.vy = p.vy/spd*5; }
+        }
+      }
+      p.x += p.vx; p.y += p.vy;
+      p.life--;
+      // Knives that hit the ground just vanish — no damage
+      if (p.subtype === 'knife' && p.y > H - 30) return false;
+      if (p.life <= 0 || p.y > H || p.y < 0) return false;
+      drawProjectile(p);
+      // Acid / blindchem splash on ground
+      if ((p.subtype === 'acid' || p.subtype === 'blindchem') && p.splash && p.y >= H - 34) {
+        spawnSplash(p);
+        return false;
+      }
+      // hit player
+      const dist = Math.hypot(p.x - player.x, p.y - player.y);
+      if (dist < p.r + 14) {
+        p.life = 0;
+        if (p.subtype === 'blackhole') {
+          player.magnetised = true;
+          player.magnetTimer = 300;
+          showStatus('MAGNETISED! Knives will track you!', 'var(--neon-purple)');
+          Particles.spawn(player.x, player.y, '#bf00ff', 14, 5);
+          return false;
+        }
+        if (p.subtype === 'nuke') {
+          killPlayer('NUCLEAR', "Your Body was Shredded to Nucleons!!");
+          return false;
+        }
+        if (p.subtype === 'powder') {
+          player.frozen = true;
+          player.frozenTimer = 240;
+          showStatus('POWDER — CAN\'T MOVE!', '#ddeeff');
+          Particles.spawn(player.x, player.y, '#ddeeff', 20, 4);
+          return false;
+        }
+        if (p.subtype === 'blindchem') {
+          spawnSplash(p);
+          applyBlindness(3500);
+          return false;
+        }
+        if (p.subtype === 'oxidiser') {
+          killPlayer('OXIDISE', 'You were Oxidised LoL!!');
+          return false;
+        }
+        damagePlayer(p.dmg, p);
+        // Acid splash on player contact too
+        if (p.subtype === 'acid' && p.splash) spawnSplash(p);
+        return false;
+      }
+      return true;
+    });
+
+    // ── Effects
+    effects = effects.filter(ef => {
+      ef.life -= 0.04;
+      if (ef.life <= 0) return false;
+      drawEffect(ef);
+      return true;
+    });
+
+    // ── Player
+    drawPlayer();
+
+    updateHud();
+
+    // ── Check win / next wave
+    if (enemies.length === 0 && !waveTransitioning) {
+      waveTransitioning = true;
+      const def = STAGE_DEFS[stage];
+      const nextWave = currentWave + 1;
+      if (nextWave < def.waves.length) {
+        // Brief pause then spawn next wave
+        setTimeout(() => {
+          currentWave = nextWave;
+          spawnWave(currentWave);
+        }, 900);
+      } else {
+        // All waves done — stage clear
+        setTimeout(() => stageClear(), 600);
+      }
+    }
+  }
+
+  return {
+    startStage,
+    pauseGame()  { state = 'paused'; cancelAnimationFrame(rafId); rafId = null; },
+    resumeGame() { if (state === 'paused') { state = 'running'; cancelAnimationFrame(rafId); rafId = null; loop(); } },
+    get stage()  { return stage; },
+    get score()  { return score; },
+    resetScore() { score = 0; },
+  };
+})();
+
+// ── MAIN GAME CONTROLLER ──────────────────────────────────────
+const Game = {
+  // Lifecycle
+  init() {
+    fakeLoad(1800, 'INITIALISING SYSTEMS...', () => {
+      Audio.playSfx('loading_screen');
+      Screens.show('disclaimer-screen');
+    });
+  },
+
+  dismissDisclaimer() {
+    Audio.playSfx('button_click');
+    Screens.show('menu-screen');
+    Audio.playBgm('menu_bgm');
+    // enable continue if save exists
+    if (Save.exists()) {
+      const btn = document.getElementById('btn-continue');
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  },
+
+  startNew() {
+    Audio.playSfx('button_click');
+    Save.clear();
+    GameEngine.resetScore();
+    fakeLoad(1200, 'LOADING STORY...', () => {
+      this.showStory();
+    });
+  },
+
+  continueGame() {
+    Audio.playSfx('button_click');
+    const save = Save.load();
+    if (!save) return;
+    fakeLoad(1000, 'LOADING SAVE DATA...', () => {
+      GameEngine.startStage(save.stage || 1);
+    });
+  },
+
+  showStory() {
+    Screens.show('story-screen');
+    Audio.playBgm('story_clip_bgm');
+    // Animate story canvas: slow scrolling starfield
+    const sc = document.getElementById('story-canvas');
+    if(sc){
+      const sctx=sc.getContext('2d');
+      sc.width=window.innerWidth;sc.height=window.innerHeight;
+      const stars=Array.from({length:120},()=>({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.5+0.3,s:Math.random()*0.3+0.05}));
+      let storyRaf;
+      function drawStars(){
+        sctx.clearRect(0,0,sc.width,sc.height);
+        sctx.fillStyle='#000';sctx.fillRect(0,0,sc.width,sc.height);
+        for(const s of stars){
+          sctx.fillStyle=`rgba(180,220,255,${0.4+Math.random()*0.3})`;
+          sctx.beginPath();sctx.arc(s.x,s.y,s.r,0,Math.PI*2);sctx.fill();
+          s.y+=s.s; if(s.y>sc.height){s.y=0;s.x=Math.random()*sc.width;}
+        }
+        storyRaf=requestAnimationFrame(drawStars);
+      }
+      drawStars();
+      // Stop when leaving
+      const origShow=Screens.show;
+    }
+    const lines = [
+      'Year 2157. The PLAZMA INSTITUTE has weaponised the laws of physics, chemistry, and biology.',
+      'Their arsenal: electromagnetic horrors, caustic abominations, and living biological nightmares.',
+      'One soldier remains. One plasma weapon. One mission.',
+      'CODE NAME: ODIN.',
+      'Neutralise all four facilities. Leave nothing standing.',
+    ];
+    let i = 0;
+    const el = document.getElementById('story-body-txt');
+    el.textContent = '';
+    const iv = setInterval(() => {
+      if (i >= lines.length) { clearInterval(iv); return; }
+      el.textContent += (i>0?'\n\n':'') + lines[i++];
+    }, 1200);
+  },
+
+  skipStory() {
+    Audio.playSfx('button_click');
+    fakeLoad(800, 'LOADING STAGE 1...', () => {
+      GameEngine.startStage(1);
+    });
+  },
+
+  pauseGame() {
+    GameEngine.pauseGame();
+    Screens.showPause();
+  },
+
+  resumeGame() {
+    Screens.hidePause();
+    GameEngine.resumeGame();
+  },
+
+  retryStage() {
+    Audio.playSfx('button_click');
+    Screens.hide('death-screen');
+    fakeLoad(800, 'RETRYING...', () => {
+      GameEngine.startStage(GameEngine.stage);
+    });
+  },
+
+  returnToMenu() {
+    Audio.playSfx('button_click');
+    Screens.hidePause();
+    Audio.stopBgm();
+    Screens.hideHud();
+    document.getElementById('boss-bar-wrap').style.display = 'none';
+    Screens.show('menu-screen');
+    Audio.playBgm('menu_bgm');
+    if (Save.exists()) {
+      const btn = document.getElementById('btn-continue');
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  },
+
+  finishGame() {
+    Audio.playSfx('button_click');
+    Save.clear(); // removes all save data per spec
+    Screens.show('finish-screen');
+    document.getElementById('final-score-txt').textContent = 'FINAL SCORE: ' + GameEngine.score;
+    Audio.playBgm('finish_screen_bgm');
+  },
+
+  openSettings() {
+    Audio.playSfx('button_click');
+    Screens.showSettings();
+  },
+
+  closeSettings() {
+    Audio.playSfx('button_click');
+    Screens.hideSettings();
+  },
+
+  switchTab(tab) {
+    Audio.playSfx('button_click');
+    document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+      b.classList.toggle('active', ['graphics','audio','keybinds'][i]===tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-'+tab)?.classList.add('active');
+  },
+
+  applySettings() {
+    const m = +document.getElementById('vol-master').value / 100;
+    const b = +document.getElementById('vol-bgm').value    / 100;
+    const s = +document.getElementById('vol-sfx').value    / 100;
+    Audio.setVolumes(m, b, s);
+    const sc = document.getElementById('scanlines');
+    sc.style.display = document.getElementById('gfx-scanlines').value === '1' ? 'block' : 'none';
+    Particles.setEnabled(document.getElementById('gfx-particles').value === '1');
+  },
+
+  quit() {
+    Audio.playSfx('button_click');
+    window.close();
+    // fallback
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:\'Orbitron\',monospace;font-size:18px;color:#00f5ff;letter-spacing:6px;">THANKS FOR PLAYING</div>';
+  },
+};
+
+// ── GLOBAL ESC TOGGLE (pause / unpause) ──────────────────────
+window.addEventListener('keydown', e => {
+  if (e.code !== 'Escape') return;
+  const pausePanel = document.getElementById('pause-panel');
+  const isPauseVisible = !pausePanel.classList.contains('hidden');
+  if (isPauseVisible) {
+    Game.resumeGame();
+  } else {
+    // only pause if actively playing (not in menus/death/etc)
+    const noScreenVisible = [...document.querySelectorAll('.screen')]
+      .every(s => s.classList.contains('hidden'));
+    if (noScreenVisible) Game.pauseGame();
+  }
+});
+
+// ── BOOT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => Game.init());
+</script>
+</body>
+</html>
