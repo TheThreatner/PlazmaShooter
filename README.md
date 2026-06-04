@@ -6,9 +6,9 @@
 
 ## 📖 About the Game
 
-**Year 2157.** MegaCorp AXIOM has weaponized the fundamental laws of physics, chemistry, and biology. Their arsenal includes electromagnetic horrors, caustic abominations, and living biological nightmares. One soldier remains. One plasma weapon. One mission.
+**Year 2157.** PLAZMA INSTITUTE has weaponized the fundamental laws of physics, chemistry, and biology. Their arsenal includes electromagnetic horrors, caustic abominations, and living biological nightmares. One soldier remains. One plasma weapon. One mission.
 
-*Code Name: **PLAZMA SHOOTER** – enter four increasingly twisted stages, defeat unique bosses, and experience an ending that questions the cost of victory.*
+*Code Name: **ODIN** – enter four increasingly twisted stages, defeat unique bosses, and experience an ending that questions the cost of victory.*
 
 > ⚠️ **Disclaimer** – This game contains fictional science/biology concepts, intense action, and stylized violence. All enemy names and scenarios are entirely fictional. Some references are intentional (and appreciated). Others are unintentional (also appreciated).
 
@@ -49,13 +49,15 @@
 
 ## 🛠 Installation & Setup
 
-### Option 1: Quick Start (No Audio)
+### Option 1: Click this link
+
+### Option 2: Quick Start (No Audio)
 
 1. Download or copy the `index.html` file to your computer.  
 2. Double‑click the file – it will open in your default web browser.  
 3. *Note*: Audio will be missing unless you supply the files (see below). The game will run fine without sound, just no SFX/BGM.
 
-### Option 2: Full Experience (with Audio)
+### Option 3: Full Experience (with Audio)(later we're still working on it)
 
 Because the game uses the `fetch` API to load audio files, you need to serve the file through a local web server (otherwise CORS restrictions may block audio).
 
@@ -136,12 +138,6 @@ Place the following files inside the `/audio/` directory:
   - State management (menu, disclaimer, story, running, pause, death, finish)  
   - Custom death sequences for nuclear and oxidiser kills  
 - **Saving** uses `localStorage` – it stores the current stage and score.
-
-## 📜 Credits
-
-- **Design & Development** – (Your name / handle)  
-- **Fonts** – Google Fonts (Orbitron, Share Tech Mono, Rajdhani)  
-- **Inspirations** – Classic arcade shooters, retro‑futurism, and a dash of science‑gone‑wrong narratives.  
 
 ## 📄 License
 
