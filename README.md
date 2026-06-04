@@ -23,7 +23,7 @@
 
 ## 🛠 Installation & Setup
 
-### Option 1: [Click this link](https://yourdomain.com/plazma-shooter)
+### Option 1: [Click this link](https://thethreatner.github.io/PlazmaShooter/)
 
 ### Option 2: Quick Start (No Audio)
 
